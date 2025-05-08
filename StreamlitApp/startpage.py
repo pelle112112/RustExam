@@ -1,21 +1,29 @@
 import streamlit as st
+import requests
 
+# API URL for Rust backend
+API_URL = "http://localhost:3000"
 
-# Login logic
+# Session state for login
 if "logged_in" not in st.session_state:
     st.session_state.logged_in = False
 if "username" not in st.session_state:
     st.session_state.username = ""
 
+# Dummy credentials (just in case backend fails)
 USER_CREDENTIALS = {
     "admin": "admin123",
     "user": "password"
 }
 
 def login(username, password):
-    return USER_CREDENTIALS.get(username) == password
+    # Test connection with a get request
+    response = requests.get(API_URL+"/hello/world")
+    if response.status_code == 200:
+        print("Connection successful")
+    return response.status_code == 200
 
-st.title("Login")
+st.title("🔐 Login")
 
 with st.form("login_form"):
     username = st.text_input("Username")
@@ -27,6 +35,6 @@ with st.form("login_form"):
             st.session_state.logged_in = True
             st.session_state.username = username
             st.success("Login successful!")
-            st.info("Navigate to 'Document Manager' from the sidebar.")
+            st.info("Now navigate to 'Document Manager' from the sidebar.")
         else:
             st.error("Invalid username or password.")

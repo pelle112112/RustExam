@@ -5,8 +5,8 @@ icon = "🏠"
 
 [[pages]]
 path = "startpage.py"
-name = "Our Start Page"
-icon = "🎈️"
+name = "Rust exam project"
+icon = ""
 
 [[pages]]
 path = "document_manager.py"
