@@ -7,3 +7,5 @@ edition = "2024"
 poem = "1.0"
 tokio = { version = "1", features = ["full"] }
 serde = { version = "1", features = ["derive"] }
+futures = "0.3.28"
+mongodb = "3.2.3"
