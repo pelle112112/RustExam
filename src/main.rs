@@ -10,12 +10,6 @@ struct GreetRequest {
     name: String,
 }
 
-#[derive(Deserialize)]
-struct LoginInfo {
-    username: String,
-    password: String,
-}
-
 #[poem_grants::protect("user")]
 #[handler]
 async fn greet(Json(payload): Json<GreetRequest>) -> String {
@@ -27,6 +21,11 @@ fn hello(Path(name): Path<String>) -> String {
     format!("hello: {}", name)
 }
 
+#[derive(Deserialize)]
+struct LoginInfo {
+    username: String,
+    password: String,
+}
 
 #[handler]
 async fn login(Json(payload): Json<LoginInfo>) -> poem::Result<impl IntoResponse> {
