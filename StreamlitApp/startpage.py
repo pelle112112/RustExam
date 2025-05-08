@@ -12,8 +12,9 @@ if "username" not in st.session_state:
 
 # Dummy credentials (just in case backend fails)
 USER_CREDENTIALS = {
-    "admin": "admin123",
-    "user": "password"
+    "admin": "admin123", #Admin credentials
+    
+    "user": "password" #User credentials
 }
 
 def login(username, password):
