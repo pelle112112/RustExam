@@ -7,3 +7,8 @@ icon = "🏠"
 path = "startpage.py"
 name = "Our Start Page"
 icon = "🎈️"
+
+[[pages]]
+path = "document_manager.py"
+name = "Document Manager"
+icon = "📁"

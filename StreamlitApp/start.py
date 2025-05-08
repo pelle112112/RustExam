@@ -1,17 +1,13 @@
 import streamlit as st
 
-# ✅ Set page config first
+
 st.set_page_config(
     page_title="Main",
-    page_icon="🧊",
+    page_icon="🗂️",
     layout="wide",
     initial_sidebar_state="expanded",
-    menu_items={
-        'Get Help': 'https://toBeInserted',
-        'Report a bug': "https://toBeInserted",
-        'About': "# https://toBeInserted"
-    }
 )
+
 
 # Now import other Streamlit-dependent modules
 from st_pages import add_page_title, get_nav_from_toml
