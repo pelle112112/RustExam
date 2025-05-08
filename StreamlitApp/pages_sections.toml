@@ -1,0 +1,9 @@
+[[pages]]
+name = "Section"
+is_section = true
+icon = "🏠"
+
+[[pages]]
+path = "startpage.py"
+name = "Our Start Page"
+icon = "🎈️"
