@@ -35,7 +35,6 @@ pub fn create_jwt(claims: Claims) -> poem::Result<String> {
 
 pub fn decode_jwt(token: &str) -> poem::Result<Claims>{
     let decoding_key = DecodingKey::from_secret(SECRET.as_bytes());
-    jsonwebtoken::decode::<Claims>(token, &decoding_key, &Validation::default());
     let result = jsonwebtoken::decode::<Claims>(token, &decoding_key, &Validation::default());
 
     match result {
