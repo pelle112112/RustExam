@@ -195,7 +195,7 @@ async fn main() -> Result<(), std::io::Error> {
     // .at("/person/:name", delete(person_delete))
     // to avoid this error we have to group these methods in a single .at()
     // then we can chain the .get .put .delete
-
+    // test
     Server::new(TcpListener::bind("localhost:3000"))
         .run(app)
         .await
