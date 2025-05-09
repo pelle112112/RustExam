@@ -17,6 +17,7 @@ use serde::{Deserialize, Serialize};
 #[derive(Debug, Serialize, Deserialize)]
 struct Person {
     name: String,
+    age: i64
 }
 
 // Handles POST requests to /add_person. The #[handler] prefix is for poem to recognize it
