@@ -5,7 +5,7 @@ import requests
 API_URL = "http://localhost:3000"
 
 # Require login
-if not st.session_state.get("logged_in", False):
+if not st.session_state.get("token", False):
     st.warning("Please log in first.")
     st.stop()
 

@@ -20,9 +20,10 @@ use serde::{Deserialize, Serialize};
 // `Serialize` and `Deserialize` allow converting this struct to/from JSON via Serde.
 // `Debug` is useful for printing the struct for debugging. See add_person comments for usage
 #[derive(Debug, Serialize, Deserialize)]
-struct Person {
-    name: String,
-    age: i64
+struct User {
+    username: String,
+    password: String,
+    role: String
 }
 
 
@@ -33,12 +34,12 @@ struct Person {
 // If the insert is successful, it returns HTTP 201 Created.
 // If the insert fails, it returns HTTP 500 Internal Server Error.
 #[handler]
-async fn add_person(
-    Json(payload): Json<Person>,
-    db: poem::web::Data<&Arc<Collection<Person>>>,
-) -> Result<StatusCode, StatusCode> {
+async fn add_user(
+    Json(payload): Json<User>,
+    db: poem::web::Data<&Arc<Collection<User>>>,
+) -> Result<StatusCode, poem::error::Error> {
     let collection = db.as_ref();
-    insert_person(collection, payload).await.map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+    insert_user(collection, payload).await?;
     // If there’s an error, I don’t care what it is — just turn it into this fixed response.
     // In this case we ignore it. |_| is just shorthand rust way of saying
     // whatever the error is just throw this INTERNAL_SERVER_ERROR.
@@ -64,15 +65,15 @@ async fn add_person(
 // - `404 Not Found` if no document matches the name.
 // - `500 Internal Server Error` if a DB error occurs.
 #[handler]
-async fn get_person(
+async fn get_user(
     Path(name): Path<String>,
-    db: poem::web::Data<&Arc<Collection<Person>>>,
-) -> Result<Json<Person>, StatusCode> {
+    db: poem::web::Data<&Arc<Collection<User>>>,
+) -> Result<Json<User>, StatusCode> {
     // Get a reference to the MongoDB collection.
     let collection = db.as_ref();
 
     // Attempt to find a Person document matching the provided name.
-    match find_person(collection, &name).await {
+    match find_user(collection, &name).await {
         // If found, return it as JSON with 200 OK.
         Ok(Some(doc)) => Ok(Json(doc)),
         // If not found, return a 404 Not Found status.
@@ -94,16 +95,16 @@ async fn get_person(
 // - `404 Not Found` if no document matched the name (i.e., nothing was updated).
 // - `500 Internal Server Error` if a DB error occurs.
 #[handler]
-async fn person_update(
+async fn user_update(
     Path(name): Path<String>,
-    Json(payload): Json<Person>,
-    db: poem::web::Data<&Arc<Collection<Person>>>,
+    Json(payload): Json<User>,
+    db: poem::web::Data<&Arc<Collection<User>>>,
 ) -> Result<String, StatusCode> {
     let collection = db.as_ref(); // Extract &Collection<Person>
     // Attempt to update the Person document with the new name.
-    match update_person(collection, &name, &payload.name).await {
+    match update_user(collection, &name, &payload.username).await {
         Ok(0) => Err(StatusCode::NOT_FOUND),
-        Ok(_) => Ok(format!("Updated Person to '{}'", payload.name)),
+        Ok(_) => Ok(format!("Updated user to '{}'", payload.username)),
         Err(_) => Err(StatusCode::INTERNAL_SERVER_ERROR),
     }
 }
@@ -119,21 +120,16 @@ async fn person_update(
 // - `404 Not Found` if no document matched the name (i.e., nothing was deleted).
 // - `500 Internal Server Error` if a DB error occurs.
 #[handler]
-async fn person_delete(
-    Path(name): Path<String>,
-    db: poem::web::Data<&Arc<Collection<Person>>>,
+async fn user_delete(
+    Path(username): Path<String>,
+    db: poem::web::Data<&Arc<Collection<User>>>,
 ) -> Result<String, StatusCode> {
-    let collection = db.as_ref(); // Extract &Collection<Person>
-    match delete_person(collection, &name).await {
+    let collection = db.as_ref(); // Extract &Collection<User>
+    match delete_user(collection, &username).await {
         Ok(0) => Err(StatusCode::NOT_FOUND),
-        Ok(_) => Ok(format!("Deleted Person '{}'", name)),
+        Ok(_) => Ok(format!("Deleted user '{}'", username)),
         Err(_) => Err(StatusCode::INTERNAL_SERVER_ERROR),
     }
-}
-
-#[handler]
-fn hello(Path(name): Path<String>) -> String {
-    format!("hello: {}", name)
 }
 
 #[derive(Deserialize)]
@@ -143,16 +139,21 @@ struct LoginInfo {
 }
 
 #[handler]
-async fn login(Json(payload): Json<LoginInfo>) -> poem::Result<impl IntoResponse> {
-    if &payload.username !="" && &payload.password !="" {
-        let mut permissions: Vec<String> = Vec::new();
-        permissions.push("user".to_string());
-        let claims = Claims::new(payload.username, permissions);
-        let jwt = create_jwt(claims)?;
-        
-        Ok(Json(serde_json::json!({"token": jwt})))
-    } else {
-        Err(poem::Error::from_status(poem::http::StatusCode::UNAUTHORIZED))
+async fn login(Json(payload): Json<LoginInfo>, db: poem::web::Data<&Arc<Collection<User>>>) -> poem::Result<impl IntoResponse> {
+    if payload.username.is_empty() || payload.password.is_empty() {
+        return Err(poem::Error::from_string("Either username or password is missing", StatusCode::UNAUTHORIZED));
+    }
+
+    match db::login(db.as_ref(), &payload.username, &payload.password).await {
+        Ok(user) => {
+            let permissions = vec![user.role.to_string()];
+            let claims = Claims::new(user.username, permissions);
+            let jwt = create_jwt(claims)
+                .map_err(|e| poem::Error::from_string(e.to_string(), StatusCode::INTERNAL_SERVER_ERROR))?;
+
+            Ok(Json(serde_json::json!({ "token": jwt })))
+        }
+        Err(err) => Err(err),
     }
 }
 
@@ -171,20 +172,19 @@ async fn main() -> Result<(), std::io::Error> {
     let db = client.database("my_api");
 
     // Select the collection `Persons` in the `my_api` database, creating it if it doesn't exist.
-    let collection = db.collection::<Person>("persons");
+    let collection = db.collection::<User>("users");
 
     // Wrap the collection in an Arc to safely share it across multiple threads.
     let collection = Arc::new(collection);
 
     // Configure the Poem app with routes for handling various HTTP methods.
     let app = Route::new()
-        .at("/hello/:name", get(hello))
-        .at("/add_person", post(add_person))
+        .at("/user/add", post(add_user))
         .at(
-            "/person/:name",
-            get(get_person)
-                .put(person_update)
-                .delete(person_delete),
+            "/user/:name",
+            get(get_user)
+                .put(user_update)
+                .delete(user_delete),
         )
         .at("/login", post(login))
         .with(JwtMiddleware)
