@@ -1,19 +1,29 @@
 mod db;
 mod auth;
+
 use db::*;
 use serde_json;
-use auth::jwt:: {Claims, create_jwt};
+use auth::jwt::{Claims, create_jwt};
 use auth::middleware::JwtMiddleware;
+use futures_util::stream::TryStreamExt; 
+
 use poem::{
     get, post, handler, listener::TcpListener, Route, Server,
-    web::{Json, Path},
+    web::{Json, Path, Multipart, Data},
     EndpointExt,
     http::StatusCode,
-    IntoResponse
+    IntoResponse,
 };
-use mongodb::{bson::doc, Client, Collection};
+
+use mongodb::{
+    bson::{doc, Document, Binary, Bson},
+    bson::spec::BinarySubtype,
+    Client, Collection,
+};
+
 use std::sync::Arc;
 use serde::{Deserialize, Serialize};
+
 
 // This struct defines the shape of JSON data we receive or send in API requests/responses.
 // The `name` field is expected in JSON payloads like: { "name": "Alice" }
@@ -149,12 +159,121 @@ async fn login(Json(payload): Json<LoginInfo>) -> poem::Result<impl IntoResponse
         permissions.push("user".to_string());
         let claims = Claims::new(payload.username, permissions);
         let jwt = create_jwt(claims)?;
-        
+
         Ok(Json(serde_json::json!({"token": jwt})))
     } else {
         Err(poem::Error::from_status(poem::http::StatusCode::UNAUTHORIZED))
     }
 }
+
+// Sends a JSON response with all the files in the mongoDB
+//
+// Arguments: Takes a mongodb collection. Collection<Document> is a generic mongodb collection with untyped BSON documents
+//
+// The cursor looks with doc! which matches with everything in the mongodb
+// the Vec::new is a new dynamic array for the filenames
+//
+// "While let some" keeps looking as long as we get a document returned.
+// try_next returns a Result<Option<Document>>
+// We convert the BSON value to a string and push the filename to our array.
+// We then return the documents in JSON format.
+
+#[handler]
+async fn get_files(db: Data<&Arc<Collection<Document>>>, ) -> Result<Json<Vec<String>>, StatusCode> {
+    
+    let mut cursor = db.find(doc! {}).await.map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+    let mut filenames = Vec::new();
+
+    while let Some(doc) = cursor.try_next().await.map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)? {
+        if let Some(filename_bson) = doc.get("filename") {
+            if let Some(filename) = filename_bson.as_str() {
+                filenames.push(filename.to_string());
+            }
+        }
+    }
+
+    Ok(Json(filenames))
+}
+
+
+// Handles upload of files endpoint to DB
+//
+// Arguments: takes a multipart files and Collection<Document> which is a generic mongodb collection with untyped BSON documents
+// Returns a string message with code 200 when file has been uploaded
+//
+// while let loops through multiple uploaded files.
+// ok(some) matches on the result
+// multipart.next_field() gets the next uploaded part (file)
+// We get the filename and assign it to the var filename, but default to file.bin if we cant get it for some reason
+// We then read the whole file into memory (Bytes) and turn it into a byte array (Vec<u8>)
+// Lastly we create a mongodb document with the filename and content (BSON)
+// We then insert it into the db with insert_one
+
+#[handler]
+async fn upload_file(mut multipart: Multipart, db: Data<&Arc<Collection<Document>>>, ) -> Result<String, StatusCode> {
+    while let Ok(Some(field)) = multipart.next_field().await {
+        let filename = field.file_name().unwrap_or("file.bin").to_string();
+
+        // Correct method for Poem 3.x
+        let data = field.bytes().await.map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+        let buffer = data.to_vec(); // Convert Bytes to Vec<u8>
+
+        let file_doc = doc! {
+            "filename": &filename,
+            "content": Bson::Binary(Binary {
+                subtype: BinarySubtype::Generic,
+                bytes: buffer,
+            }),
+        };
+
+        db.insert_one(file_doc)
+            .await
+            .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+
+        return Ok(format!("Uploaded file '{}'", filename));
+    }
+
+    Err(StatusCode::BAD_REQUEST)
+}
+
+// This endpoint is made to handle the download of a selected file.
+//
+// Arguments: path filename and same as before Collection of documents
+// Returns: this handler returns a statuscode as response.
+//
+// We create a filter query where we search for a specific filename
+// We use the filter with a find_one look in the mongodb. If not found, we return an internal server error
+// "if let Some(Bson::Binary(bin))" checks if theres a content field, and if the field is binary.
+// the "let response" builds an hhtp response. The "Content-Disposition" triggers a download in the browser for the selected file.
+// body(..) Sends the file content and copies the bytes of the content field.
+
+#[handler]
+async fn download_file(Path(filename): Path<String>, db: Data<&Arc<Collection<Document>>>, ) -> Result<impl IntoResponse, StatusCode> {
+    // Create a query like { "filename": "myfile.pdf" }
+    let filter = doc! { "filename": &filename };
+
+    // Try to find the file document in the DB
+    if let Some(doc) = db
+        .find_one(filter)
+        .await
+        .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?
+    {
+        // Get the "content" field and make sure it's binary data
+        if let Some(Bson::Binary(bin)) = doc.get("content") {
+            // Return the binary data as a downloadable file
+            let response = poem::Response::builder()
+                .header("Content-Disposition", format!("attachment; filename=\"{}\"", filename))
+                .body(bin.bytes.clone());
+
+            return Ok(response);
+        }
+    }
+
+    Err(StatusCode::NOT_FOUND)
+}
+
+
+
 
 // The main entry point for the application, setting up the server and MongoDB connection.
 //
@@ -162,21 +281,15 @@ async fn login(Json(payload): Json<LoginInfo>) -> poem::Result<impl IntoResponse
 // 1. Connects to the MongoDB server at `localhost:27017`.
 // 2. Selects (or creates) the database `my_api` and collection `Persons`.
 // 3. Sets up the API routes using Poem.
+
 #[tokio::main]
 async fn main() -> Result<(), std::io::Error> {
-    // Connect to MongoDB at localhost (with the default MongoDB port 27017).
     let client = Client::with_uri_str("mongodb://localhost:27017").await.unwrap();
-
-    // Select the database `my_api`, creating it if it doesn't exist.
     let db = client.database("my_api");
 
-    // Select the collection `Persons` in the `my_api` database, creating it if it doesn't exist.
-    let collection = db.collection::<Person>("persons");
+    let collection = Arc::new(db.collection::<Person>("persons"));
+    let files_collection = Arc::new(db.collection::<Document>("files")); // For file binary data
 
-    // Wrap the collection in an Arc to safely share it across multiple threads.
-    let collection = Arc::new(collection);
-
-    // Configure the Poem app with routes for handling various HTTP methods.
     let app = Route::new()
         .at("/hello/:name", get(hello))
         .at("/add_person", post(add_person))
@@ -187,15 +300,13 @@ async fn main() -> Result<(), std::io::Error> {
                 .delete(person_delete),
         )
         .at("/login", post(login))
+        .at("/upload", post(upload_file))
+        .at("/download_file/:filename", get(download_file)) 
+        .at("/files", get(get_files))
         .with(JwtMiddleware)
-        .data(collection);
-    // the route /person/:name is shared and will cause a duplication error.
-    // .at("/person/:name", get(get_person))
-    // .at("/person/:name", put(person_update))
-    // .at("/person/:name", delete(person_delete))
-    // to avoid this error we have to group these methods in a single .at()
-    // then we can chain the .get .put .delete
-    // test
+        .data(collection)
+        .data(files_collection);
+
     Server::new(TcpListener::bind("localhost:3000"))
         .run(app)
         .await
