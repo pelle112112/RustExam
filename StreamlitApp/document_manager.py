@@ -9,11 +9,11 @@ if not st.session_state.get("logged_in", False):
     st.warning("Please log in first.")
     st.stop()
 
-st.title("📄 Document Manager")
+st.title("Document Manager")
 
-# ——————————————————————————————
+
 # File upload
-# ——————————————————————————————
+
 uploaded_file = st.file_uploader("Upload a file")
 if uploaded_file:
     files = {
@@ -27,9 +27,9 @@ if uploaded_file:
     else:
         st.error(f"Upload failed: {response.status_code}")
 
-# ——————————————————————————————
+
 # Fetch and list files
-# ——————————————————————————————
+
 st.header("Available Files")
 resp = requests.get(f"{API_URL}/files")
 if resp.status_code == 200:

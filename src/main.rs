@@ -58,7 +58,7 @@ async fn add_person(
     //     eprintln!("Insert error: {:?}", err); // here the Debug in the struct is used {:?}
     //     StatusCode::INTERNAL_SERVER_ERROR
     // })?;
-    // the ? forces a return in case of an error and skips the Ok(statuscode) on the next line.
+    // the ? forces a return in case of an error and skips the Ok(status code) on the next line.
     Ok(StatusCode::CREATED)
 }
 
@@ -239,12 +239,12 @@ async fn upload_file(mut multipart: Multipart, db: Data<&Arc<Collection<Document
 // This endpoint is made to handle the download of a selected file.
 //
 // Arguments: path filename and same as before Collection of documents
-// Returns: this handler returns a statuscode as response.
+// Returns: this handler returns a status code as response.
 //
 // We create a filter query where we search for a specific filename
 // We use the filter with a find_one look in the mongodb. If not found, we return an internal server error
 // "if let Some(Bson::Binary(bin))" checks if theres a content field, and if the field is binary.
-// the "let response" builds an hhtp response. The "Content-Disposition" triggers a download in the browser for the selected file.
+// the "let response" builds an http response. The "Content-Disposition" triggers a download in the browser for the selected file.
 // body(..) Sends the file content and copies the bytes of the content field.
 
 #[handler]
