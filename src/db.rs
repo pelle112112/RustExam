@@ -65,17 +65,22 @@ pub async fn find_user(
 //   - If there’s an error during the update, it returns an error.
 pub async fn update_user(
     collection: &Collection<User>,
-    old_username: &str,
-    new_username: &str,
-) -> mongodb::error::Result<u64> {
-    // Create a filter to search for the document with the old name.
-    let filter = doc! { "username": old_username };
-    // Create an update document that sets the "name" field to the new name.
-    let update = doc! { "$set": { "username": new_username } };
-    // Execute the update operation.
-    let result = collection.update_one(filter, update).await?;
-    // Return the count of matched documents.
-    Ok(result.matched_count)
+    username: &str,
+    new_user_details: &User,
+) -> Result<(), PoemError> {
+    match find_user(collection, username).await{
+        Ok(_) => {
+            let update = doc! { "$set": { "username": &new_user_details.username, "password": &new_user_details.password, "role": &new_user_details.role } };
+            let result = collection.update_one(doc! {"username": username}, update).await;
+            match result {
+                Ok(_) => Ok(()),
+                Err(_) => Err(PoemError::from_string("Can't change username because it is already taken",StatusCode::CONFLICT))
+            }
+        }
+        Err(_) => {
+            Err(PoemError::from_string("Internal server error", StatusCode::INTERNAL_SERVER_ERROR))
+        }
+    }
 }
 
 // Deletes a person by name from the MongoDB collection.
@@ -92,13 +97,19 @@ pub async fn update_user(
 pub async fn delete_user(
     collection: &Collection<User>,
     username: &str,
-) -> mongodb::error::Result<u64> {
+) -> Result<(), PoemError> {
     // Create a filter to find the person by name.
     let filter = doc! { "username": username };
     // Execute the delete operation.
-    let result = collection.delete_one(filter).await?;
-    // Return the count of deleted documents.
-    Ok(result.deleted_count)
+    match collection.delete_one(filter).await {
+        Ok(deleted) => {
+            if deleted.deleted_count == 0 {
+                return Err(PoemError::from_string("The user you are trying to delete doesn't exist.", StatusCode::NOT_FOUND))
+            }
+            Ok(())
+        },
+        Err(_) => Err(PoemError::from_status(StatusCode::INTERNAL_SERVER_ERROR))
+    }
 }
  
  
@@ -108,7 +119,7 @@ pub async fn delete_user(
          .find_one(doc! { "username": username })
          .await
          .map_err(|e| {
-             eprintln!("DB error: {}", e); // optional: log internal error
+             eprintln!("DB error: {}", e);
              PoemError::from_string("Database error", StatusCode::INTERNAL_SERVER_ERROR)
          })?
          .ok_or_else(|| {
@@ -116,7 +127,7 @@ pub async fn delete_user(
              PoemError::from_string("Invalid username or password", StatusCode::UNAUTHORIZED)
          })?;
 
-     // Password check — replace this with proper hash check in production
+     // Password check
      if user.password != password {
          return Err(PoemError::from_string(
              "Invalid username or password",
@@ -148,17 +159,35 @@ pub async fn delete_user(
 
      let cursor = collection.find(doc! {"username" : {"$in" : &users_to_find}}).await?;
      let test_users: Vec<User> = cursor.try_collect().await?;
-
+     let mut admin_vector = Vec::new();
+     admin_vector.push("admin".to_string());
+     admin_vector.push("user".to_string());
+     let mut user_vector = Vec::new();
+     user_vector.push("user".to_string());
      if test_users.is_empty() {
          println!("No test users found - creating 2 test users.");
-         let test_user_1 : User = User::new("test".to_string(), "test".to_string(), "user".to_string());
-         let test_user_2 : User = User::new("test2".to_string(), "test".to_string(), "user".to_string());
+         let test_user_1 : User = User::new("test".to_string(), "test".to_string(), admin_vector);
+         let test_user_2 : User = User::new("test2".to_string(), "test".to_string(), user_vector);
          if insert_user(collection, &test_user_1).await.is_ok() && insert_user(collection, &test_user_2).await.is_ok() {
              println!("Created 2 test users:");
              println!("{:?}", test_user_1);
              println!("{:?}", test_user_2);
          }
          
+     } else if test_users.len() == 1 {
+         println!("Found 1 existing user:");
+         println!("{:?}", test_users[0]);
+         if test_users[0].username.eq("test"){
+            let test_user_2 : User = User::new("test2".to_string(), "test".to_string(), user_vector);
+            let _ = insert_user(collection, &test_user_2).await;
+            println!("Created following user");
+             println!("{:?}", test_user_2)
+         } else {
+             let test_user_1 : User = User::new("test".to_string(), "test".to_string(), admin_vector);
+             let _ = insert_user(collection, &test_user_1).await;
+             println!("Created following user");
+             println!("{:?}", test_user_1)
+         }
      } else {
          println!("Retrieved {} test users:", test_users.len());
          for user in &test_users {
