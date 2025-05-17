@@ -65,17 +65,22 @@ pub async fn find_user(
 //   - If there’s an error during the update, it returns an error.
 pub async fn update_user(
     collection: &Collection<User>,
-    old_username: &str,
-    new_username: &str,
-) -> mongodb::error::Result<u64> {
-    // Create a filter to search for the document with the old name.
-    let filter = doc! { "username": old_username };
-    // Create an update document that sets the "name" field to the new name.
-    let update = doc! { "$set": { "username": new_username } };
-    // Execute the update operation.
-    let result = collection.update_one(filter, update).await?;
-    // Return the count of matched documents.
-    Ok(result.matched_count)
+    username: &str,
+    new_user_details: &User,
+) -> Result<(), PoemError> {
+    match find_user(collection, username).await{
+        Ok(_) => {
+            let update = doc! { "$set": { "username": &new_user_details.username, "password": &new_user_details.password, "role": &new_user_details.role } };
+            let result = collection.update_one(doc! {"username": username}, update).await;
+            match result {
+                Ok(_) => Ok(()),
+                Err(_) => Err(PoemError::from_string("Can't change username because it is already taken",StatusCode::CONFLICT))
+            }
+        }
+        Err(_) => {
+            Err(PoemError::from_string("Internal server error", StatusCode::INTERNAL_SERVER_ERROR))
+        }
+    }
 }
 
 // Deletes a person by name from the MongoDB collection.
@@ -108,7 +113,7 @@ pub async fn delete_user(
          .find_one(doc! { "username": username })
          .await
          .map_err(|e| {
-             eprintln!("DB error: {}", e); // optional: log internal error
+             eprintln!("DB error: {}", e);
              PoemError::from_string("Database error", StatusCode::INTERNAL_SERVER_ERROR)
          })?
          .ok_or_else(|| {
@@ -116,7 +121,7 @@ pub async fn delete_user(
              PoemError::from_string("Invalid username or password", StatusCode::UNAUTHORIZED)
          })?;
 
-     // Password check — replace this with proper hash check in production
+     // Password check
      if user.password != password {
          return Err(PoemError::from_string(
              "Invalid username or password",

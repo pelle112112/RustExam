@@ -57,15 +57,6 @@ async fn add_user(
 ) -> Result<StatusCode, poem::error::Error> {
     let collection = db.as_ref();
     insert_user(collection, &payload).await?;
-    // If there’s an error, I don’t care what it is — just turn it into this fixed response.
-    // In this case we ignore it. |_| is just shorthand rust way of saying
-    // whatever the error is just throw this INTERNAL_SERVER_ERROR.
-    // If an error occur we could decide to do something with that error.
-    // If we want to do something with the error it can look like this
-    //.map_err(|err| {
-    //     eprintln!("Insert error: {:?}", err); // here the Debug in the struct is used {:?}
-    //     StatusCode::INTERNAL_SERVER_ERROR
-    // })?;
     // the ? forces a return in case of an error and skips the Ok(status code) on the next line.
     Ok(StatusCode::CREATED)
 }
@@ -116,14 +107,11 @@ async fn user_update(
     Path(name): Path<String>,
     Json(payload): Json<User>,
     db: poem::web::Data<&Arc<Collection<User>>>,
-) -> Result<String, StatusCode> {
+) -> Result<StatusCode, poem::error::Error> {
     let collection = db.as_ref(); // Extract &Collection<Person>
     // Attempt to update the Person document with the new name.
-    match update_user(collection, &name, &payload.username).await {
-        Ok(0) => Err(StatusCode::NOT_FOUND),
-        Ok(_) => Ok(format!("Updated user to '{}'", payload.username)),
-        Err(_) => Err(StatusCode::INTERNAL_SERVER_ERROR),
-    }
+    update_user(collection, &name, &payload).await?;
+    Ok(StatusCode::OK)
 }
 
 // Handles DELETE requests to remove a Person by name from the database.
@@ -296,7 +284,7 @@ async fn main() -> Result<(), std::io::Error> {
 
     // Wrap the collection in an Arc to safely share it across multiple threads.
     let collection = Arc::new(db.collection::<User>("users"));
-    let files_collection = Arc::new(db.collection::<Document>("files")); // For file binary data
+    let files_collection = Arc::new(db.collection::<Document>("files"));
 
     let _ = initial_user_db_setup(&collection).await;
     // Configure the Poem app with routes for handling various HTTP methods.
