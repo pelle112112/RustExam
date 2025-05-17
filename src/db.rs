@@ -97,13 +97,19 @@ pub async fn update_user(
 pub async fn delete_user(
     collection: &Collection<User>,
     username: &str,
-) -> mongodb::error::Result<u64> {
+) -> Result<(), PoemError> {
     // Create a filter to find the person by name.
     let filter = doc! { "username": username };
     // Execute the delete operation.
-    let result = collection.delete_one(filter).await?;
-    // Return the count of deleted documents.
-    Ok(result.deleted_count)
+    match collection.delete_one(filter).await {
+        Ok(deleted) => {
+            if deleted.deleted_count == 0 {
+                return Err(PoemError::from_string("The user you are trying to delete doesn't exist.", StatusCode::NOT_FOUND))
+            }
+            Ok(())
+        },
+        Err(_) => Err(PoemError::from_status(StatusCode::INTERNAL_SERVER_ERROR))
+    }
 }
  
  

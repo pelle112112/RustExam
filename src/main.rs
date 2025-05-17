@@ -53,7 +53,7 @@ impl User {
 #[handler]
 async fn add_user(
     Json(payload): Json<User>,
-    db: poem::web::Data<&Arc<Collection<User>>>,
+    db: Data<&Arc<Collection<User>>>,
 ) -> Result<StatusCode, poem::error::Error> {
     let collection = db.as_ref();
     insert_user(collection, &payload).await?;
@@ -75,7 +75,7 @@ async fn add_user(
 #[handler]
 async fn get_user(
     Path(name): Path<String>,
-    db: poem::web::Data<&Arc<Collection<User>>>,
+    db: Data<&Arc<Collection<User>>>,
 ) -> Result<Json<User>, StatusCode> {
     // Get a reference to the MongoDB collection.
     let collection = db.as_ref();
@@ -106,9 +106,9 @@ async fn get_user(
 async fn user_update(
     Path(name): Path<String>,
     Json(payload): Json<User>,
-    db: poem::web::Data<&Arc<Collection<User>>>,
+    db: Data<&Arc<Collection<User>>>,
 ) -> Result<StatusCode, poem::error::Error> {
-    let collection = db.as_ref(); // Extract &Collection<Person>
+    let collection = db.as_ref();
     // Attempt to update the Person document with the new name.
     update_user(collection, &name, &payload).await?;
     Ok(StatusCode::OK)
@@ -127,14 +127,11 @@ async fn user_update(
 #[handler]
 async fn user_delete(
     Path(username): Path<String>,
-    db: poem::web::Data<&Arc<Collection<User>>>,
-) -> Result<String, StatusCode> {
-    let collection = db.as_ref(); // Extract &Collection<User>
-    match delete_user(collection, &username).await {
-        Ok(0) => Err(StatusCode::NOT_FOUND),
-        Ok(_) => Ok(format!("Deleted user '{}'", username)),
-        Err(_) => Err(StatusCode::INTERNAL_SERVER_ERROR),
-    }
+    db: Data<&Arc<Collection<User>>>,
+) -> Result<StatusCode, poem::error::Error> {
+    let collection = db.as_ref(); 
+    delete_user(collection, &username).await?;
+    Ok(StatusCode::OK)
 }
 
 #[derive(Deserialize)]
@@ -144,7 +141,7 @@ struct LoginInfo {
 }
 
 #[handler]
-async fn login(Json(payload): Json<LoginInfo>, db: poem::web::Data<&Arc<Collection<User>>>) -> poem::Result<impl IntoResponse> {
+async fn login(Json(payload): Json<LoginInfo>, db: Data<&Arc<Collection<User>>>) -> poem::Result<impl IntoResponse> {
     if payload.username.is_empty() || payload.password.is_empty() {
         return Err(poem::Error::from_string("Either username or password is missing", StatusCode::UNAUTHORIZED));
     }
