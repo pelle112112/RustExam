@@ -1,4 +1,5 @@
- use mongodb::{bson::doc,Collection};
+use futures::TryStreamExt;
+use mongodb::{bson::doc, Collection, IndexModel, options::{IndexOptions}};
  use poem::{http::StatusCode, Error as PoemError};
  use crate::User;
  
@@ -12,7 +13,7 @@
 // - `mongodb::error::Result<()>`: Returns an error if the insert fails, or `Ok(())` if successful.
  pub async fn insert_user(
      collection: &Collection<User>,
-     user: User,
+     user: &User,
  ) -> Result<(), PoemError> {
      let existing_user = collection.find_one(doc! {"username": &user.username})
          .await
@@ -124,4 +125,46 @@ pub async fn delete_user(
      }
 
      Ok(user)
+ }
+
+ pub async fn initial_user_db_setup(collection: &Collection<User>) -> mongodb::error::Result<bool> {
+
+     let index_model = IndexModel::builder()
+         .keys(doc! { "username": 1 })
+         .options(
+             IndexOptions::builder()
+                 .unique(true)
+                 .name("username_unique_index".to_string())
+                 .build(),
+         )
+         .build();
+
+     match collection.create_index(index_model).await {
+         Ok(_) => println!("Index on username is created or already exists"),
+         Err(_) => println!("Failed to create index")
+     }
+     
+     let users_to_find :Vec<&str> = ["test", "test2"].to_vec();
+
+     let cursor = collection.find(doc! {"username" : {"$in" : &users_to_find}}).await?;
+     let test_users: Vec<User> = cursor.try_collect().await?;
+
+     if test_users.is_empty() {
+         println!("No test users found - creating 2 test users.");
+         let test_user_1 : User = User::new("test".to_string(), "test".to_string(), "user".to_string());
+         let test_user_2 : User = User::new("test2".to_string(), "test".to_string(), "user".to_string());
+         if insert_user(collection, &test_user_1).await.is_ok() && insert_user(collection, &test_user_2).await.is_ok() {
+             println!("Created 2 test users:");
+             println!("{:?}", test_user_1);
+             println!("{:?}", test_user_2);
+         }
+         
+     } else {
+         println!("Retrieved {} test users:", test_users.len());
+         for user in &test_users {
+             println!("{:?}", user);
+         }
+     }
+
+     Ok(true)
  }

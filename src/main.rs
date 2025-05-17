@@ -26,6 +26,15 @@ struct User {
     role: String
 }
 
+impl User {
+    pub fn new(username: String, password: String, role: String) -> Self {
+        Self {
+            username,
+            password,
+            role
+        }
+    }
+}
 
 // Handles POST requests to /add_person. The #[handler] prefix is for poem to recognize it
 // This function receives JSON data like { "name": "Alice" } and deserializes it
@@ -39,7 +48,7 @@ async fn add_user(
     db: poem::web::Data<&Arc<Collection<User>>>,
 ) -> Result<StatusCode, poem::error::Error> {
     let collection = db.as_ref();
-    insert_user(collection, payload).await?;
+    insert_user(collection, &payload).await?;
     // If there’s an error, I don’t care what it is — just turn it into this fixed response.
     // In this case we ignore it. |_| is just shorthand rust way of saying
     // whatever the error is just throw this INTERNAL_SERVER_ERROR.
@@ -176,6 +185,8 @@ async fn main() -> Result<(), std::io::Error> {
 
     // Wrap the collection in an Arc to safely share it across multiple threads.
     let collection = Arc::new(collection);
+    
+    let _ = initial_user_db_setup(&collection).await;
 
     // Configure the Poem app with routes for handling various HTTP methods.
     let app = Route::new()
