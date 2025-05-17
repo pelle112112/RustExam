@@ -170,6 +170,20 @@ pub async fn delete_user(
              println!("{:?}", test_user_2);
          }
          
+     } else if test_users.len() == 1 {
+         println!("Found 1 existing user:");
+         println!("{:?}", test_users[0]);
+         if test_users[0].username.eq("test"){
+            let test_user_2 : User = User::new("test2".to_string(), "test".to_string(), "user".to_string());
+            let _ = insert_user(collection, &test_user_2).await;
+            println!("Created following user");
+             println!("{:?}", test_user_2)
+         } else {
+             let test_user_1 : User = User::new("test".to_string(), "test".to_string(), "user".to_string());
+             let _ = insert_user(collection, &test_user_1).await;
+             println!("Created following user");
+             println!("{:?}", test_user_1)
+         }
      } else {
          println!("Retrieved {} test users:", test_users.len());
          for user in &test_users {
