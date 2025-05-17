@@ -159,11 +159,15 @@ pub async fn delete_user(
 
      let cursor = collection.find(doc! {"username" : {"$in" : &users_to_find}}).await?;
      let test_users: Vec<User> = cursor.try_collect().await?;
-
+     let mut admin_vector = Vec::new();
+     admin_vector.push("admin".to_string());
+     admin_vector.push("user".to_string());
+     let mut user_vector = Vec::new();
+     user_vector.push("user".to_string());
      if test_users.is_empty() {
          println!("No test users found - creating 2 test users.");
-         let test_user_1 : User = User::new("test".to_string(), "test".to_string(), "user".to_string());
-         let test_user_2 : User = User::new("test2".to_string(), "test".to_string(), "user".to_string());
+         let test_user_1 : User = User::new("test".to_string(), "test".to_string(), admin_vector);
+         let test_user_2 : User = User::new("test2".to_string(), "test".to_string(), user_vector);
          if insert_user(collection, &test_user_1).await.is_ok() && insert_user(collection, &test_user_2).await.is_ok() {
              println!("Created 2 test users:");
              println!("{:?}", test_user_1);
@@ -174,12 +178,12 @@ pub async fn delete_user(
          println!("Found 1 existing user:");
          println!("{:?}", test_users[0]);
          if test_users[0].username.eq("test"){
-            let test_user_2 : User = User::new("test2".to_string(), "test".to_string(), "user".to_string());
+            let test_user_2 : User = User::new("test2".to_string(), "test".to_string(), user_vector);
             let _ = insert_user(collection, &test_user_2).await;
             println!("Created following user");
              println!("{:?}", test_user_2)
          } else {
-             let test_user_1 : User = User::new("test".to_string(), "test".to_string(), "user".to_string());
+             let test_user_1 : User = User::new("test".to_string(), "test".to_string(), admin_vector);
              let _ = insert_user(collection, &test_user_1).await;
              println!("Created following user");
              println!("{:?}", test_user_1)

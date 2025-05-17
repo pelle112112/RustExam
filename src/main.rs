@@ -7,7 +7,7 @@ use auth::middleware::JwtMiddleware;
 use futures_util::stream::TryStreamExt;
 
 use poem::{
-    get, post, handler, listener::TcpListener, Route, Server,
+    get, post, handler, listener::TcpListener, Route, Server, Response,
     web::{Json, Path, Multipart, Data},
     EndpointExt,
     http::StatusCode,
@@ -31,11 +31,11 @@ use serde::{Deserialize, Serialize};
 struct User {
     username: String,
     password: String,
-    role: String
+    role: Vec<String>
 }
 
 impl User {
-    pub fn new(username: String, password: String, role: String) -> Self {
+    pub fn new(username: String, password: String, role: Vec<String>) -> Self {
         Self {
             username,
             password,
@@ -50,6 +50,7 @@ impl User {
 //
 // If the insert is successful, it returns HTTP 201 Created.
 // If the insert fails, it returns HTTP 500 Internal Server Error.
+#[poem_grants::protect("admin")]
 #[handler]
 async fn add_user(
     Json(payload): Json<User>,
@@ -72,6 +73,7 @@ async fn add_user(
 // - `200 OK` with the Person document as JSON if found.
 // - `404 Not Found` if no document matches the name.
 // - `500 Internal Server Error` if a DB error occurs.
+#[poem_grants::protect("admin")]
 #[handler]
 async fn get_user(
     Path(name): Path<String>,
@@ -102,6 +104,7 @@ async fn get_user(
 // - `200 OK` with a success message if the update was successful.
 // - `404 Not Found` if no document matched the name (i.e., nothing was updated).
 // - `500 Internal Server Error` if a DB error occurs.
+#[poem_grants::protect("admin")]
 #[handler]
 async fn user_update(
     Path(name): Path<String>,
@@ -124,6 +127,7 @@ async fn user_update(
 // - `200 OK` with a success message if the deletion was successful.
 // - `404 Not Found` if no document matched the name (i.e., nothing was deleted).
 // - `500 Internal Server Error` if a DB error occurs.
+#[poem_grants::protect("admin")]
 #[handler]
 async fn user_delete(
     Path(username): Path<String>,
@@ -148,7 +152,7 @@ async fn login(Json(payload): Json<LoginInfo>, db: Data<&Arc<Collection<User>>>)
 
     match db::login(db.as_ref(), &payload.username, &payload.password).await {
         Ok(user) => {
-            let permissions = vec![user.role.to_string()];
+            let permissions = user.role;
             let claims = Claims::new(user.username, permissions);
             let jwt = create_jwt(claims)
                 .map_err(|e| poem::Error::from_string(e.to_string(), StatusCode::INTERNAL_SERVER_ERROR))?;
@@ -170,7 +174,7 @@ async fn login(Json(payload): Json<LoginInfo>, db: Data<&Arc<Collection<User>>>)
 // try_next returns a Result<Option<Document>>
 // We convert the BSON value to a string and push the filename to our array.
 // We then return the documents in JSON format.
-
+#[poem_grants::protect("user")]
 #[handler]
 async fn get_files(db: Data<&Arc<Collection<Document>>>, ) -> Result<Json<Vec<String>>, StatusCode> {
 
@@ -201,7 +205,7 @@ async fn get_files(db: Data<&Arc<Collection<Document>>>, ) -> Result<Json<Vec<St
 // We then read the whole file into memory (Bytes) and turn it into a byte array (Vec<u8>)
 // Lastly we create a mongodb document with the filename and content (BSON)
 // We then insert it into the db with insert_one
-
+#[poem_grants::protect("user")]
 #[handler]
 async fn upload_file(mut multipart: Multipart, db: Data<&Arc<Collection<Document>>>, ) -> Result<String, StatusCode> {
     while let Ok(Some(field)) = multipart.next_field().await {
@@ -239,9 +243,9 @@ async fn upload_file(mut multipart: Multipart, db: Data<&Arc<Collection<Document
 // "if let Some(Bson::Binary(bin))" checks if theres a content field, and if the field is binary.
 // the "let response" builds an http response. The "Content-Disposition" triggers a download in the browser for the selected file.
 // body(..) Sends the file content and copies the bytes of the content field.
-
+#[poem_grants::protect("user")]
 #[handler]
-async fn download_file(Path(filename): Path<String>, db: Data<&Arc<Collection<Document>>>, ) -> Result<impl IntoResponse, StatusCode> {
+async fn download_file(Path(filename): Path<String>, db: Data<&Arc<Collection<Document>>>, ) -> Result<Response, StatusCode> {
     // Create a query like { "filename": "myfile.pdf" }
     let filter = doc! { "filename": &filename };
 
@@ -254,7 +258,7 @@ async fn download_file(Path(filename): Path<String>, db: Data<&Arc<Collection<Do
         // Get the "content" field and make sure it's binary data
         if let Some(Bson::Binary(bin)) = doc.get("content") {
             // Return the binary data as a downloadable file
-            let response = poem::Response::builder()
+            let response = Response::builder()
                 .header("Content-Disposition", format!("attachment; filename=\"{}\"", filename))
                 .body(bin.bytes.clone());
 
