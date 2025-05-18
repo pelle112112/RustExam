@@ -1,14 +1,13 @@
 mod db;
 mod auth;
-
 use db::*;
 use serde_json;
 use auth::jwt::{Claims, create_jwt};
 use auth::middleware::JwtMiddleware;
-use futures_util::stream::TryStreamExt; 
+use futures_util::stream::TryStreamExt;
 
 use poem::{
-    get, post, handler, listener::TcpListener, Route, Server,
+    get, post, handler, listener::TcpListener, Route, Server, Response,
     web::{Json, Path, Multipart, Data},
     EndpointExt,
     http::StatusCode,
@@ -24,17 +23,26 @@ use mongodb::{
 use std::sync::Arc;
 use serde::{Deserialize, Serialize};
 
-
 // This struct defines the shape of JSON data we receive or send in API requests/responses.
 // The `name` field is expected in JSON payloads like: { "name": "Alice" }
 // `Serialize` and `Deserialize` allow converting this struct to/from JSON via Serde.
 // `Debug` is useful for printing the struct for debugging. See add_person comments for usage
 #[derive(Debug, Serialize, Deserialize)]
-struct Person {
-    name: String,
-    age: i64
+struct User {
+    username: String,
+    password: String,
+    role: Vec<String>
 }
 
+impl User {
+    pub fn new(username: String, password: String, role: Vec<String>) -> Self {
+        Self {
+            username,
+            password,
+            role
+        }
+    }
+}
 
 // Handles POST requests to /add_person. The #[handler] prefix is for poem to recognize it
 // This function receives JSON data like { "name": "Alice" } and deserializes it
@@ -42,22 +50,14 @@ struct Person {
 //
 // If the insert is successful, it returns HTTP 201 Created.
 // If the insert fails, it returns HTTP 500 Internal Server Error.
+#[poem_grants::protect("admin")]
 #[handler]
-async fn add_person(
-    Json(payload): Json<Person>,
-    db: poem::web::Data<&Arc<Collection<Person>>>,
-) -> Result<StatusCode, StatusCode> {
+async fn add_user(
+    Json(payload): Json<User>,
+    db: Data<&Arc<Collection<User>>>,
+) -> Result<StatusCode, poem::error::Error> {
     let collection = db.as_ref();
-    insert_person(collection, payload).await.map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
-    // If there’s an error, I don’t care what it is — just turn it into this fixed response.
-    // In this case we ignore it. |_| is just shorthand rust way of saying
-    // whatever the error is just throw this INTERNAL_SERVER_ERROR.
-    // If an error occur we could decide to do something with that error.
-    // If we want to do something with the error it can look like this
-    //.map_err(|err| {
-    //     eprintln!("Insert error: {:?}", err); // here the Debug in the struct is used {:?}
-    //     StatusCode::INTERNAL_SERVER_ERROR
-    // })?;
+    insert_user(collection, &payload).await?;
     // the ? forces a return in case of an error and skips the Ok(status code) on the next line.
     Ok(StatusCode::CREATED)
 }
@@ -73,16 +73,17 @@ async fn add_person(
 // - `200 OK` with the Person document as JSON if found.
 // - `404 Not Found` if no document matches the name.
 // - `500 Internal Server Error` if a DB error occurs.
+#[poem_grants::protect("admin")]
 #[handler]
-async fn get_person(
+async fn get_user(
     Path(name): Path<String>,
-    db: poem::web::Data<&Arc<Collection<Person>>>,
-) -> Result<Json<Person>, StatusCode> {
+    db: Data<&Arc<Collection<User>>>,
+) -> Result<Json<User>, StatusCode> {
     // Get a reference to the MongoDB collection.
     let collection = db.as_ref();
 
     // Attempt to find a Person document matching the provided name.
-    match find_person(collection, &name).await {
+    match find_user(collection, &name).await {
         // If found, return it as JSON with 200 OK.
         Ok(Some(doc)) => Ok(Json(doc)),
         // If not found, return a 404 Not Found status.
@@ -103,19 +104,17 @@ async fn get_person(
 // - `200 OK` with a success message if the update was successful.
 // - `404 Not Found` if no document matched the name (i.e., nothing was updated).
 // - `500 Internal Server Error` if a DB error occurs.
+#[poem_grants::protect("admin")]
 #[handler]
-async fn person_update(
+async fn user_update(
     Path(name): Path<String>,
-    Json(payload): Json<Person>,
-    db: poem::web::Data<&Arc<Collection<Person>>>,
-) -> Result<String, StatusCode> {
-    let collection = db.as_ref(); // Extract &Collection<Person>
+    Json(payload): Json<User>,
+    db: Data<&Arc<Collection<User>>>,
+) -> Result<StatusCode, poem::error::Error> {
+    let collection = db.as_ref();
     // Attempt to update the Person document with the new name.
-    match update_person(collection, &name, &payload.name).await {
-        Ok(0) => Err(StatusCode::NOT_FOUND),
-        Ok(_) => Ok(format!("Updated Person to '{}'", payload.name)),
-        Err(_) => Err(StatusCode::INTERNAL_SERVER_ERROR),
-    }
+    update_user(collection, &name, &payload).await?;
+    Ok(StatusCode::OK)
 }
 
 // Handles DELETE requests to remove a Person by name from the database.
@@ -128,22 +127,15 @@ async fn person_update(
 // - `200 OK` with a success message if the deletion was successful.
 // - `404 Not Found` if no document matched the name (i.e., nothing was deleted).
 // - `500 Internal Server Error` if a DB error occurs.
+#[poem_grants::protect("admin")]
 #[handler]
-async fn person_delete(
-    Path(name): Path<String>,
-    db: poem::web::Data<&Arc<Collection<Person>>>,
-) -> Result<String, StatusCode> {
-    let collection = db.as_ref(); // Extract &Collection<Person>
-    match delete_person(collection, &name).await {
-        Ok(0) => Err(StatusCode::NOT_FOUND),
-        Ok(_) => Ok(format!("Deleted Person '{}'", name)),
-        Err(_) => Err(StatusCode::INTERNAL_SERVER_ERROR),
-    }
-}
-
-#[handler]
-fn hello(Path(name): Path<String>) -> String {
-    format!("hello: {}", name)
+async fn user_delete(
+    Path(username): Path<String>,
+    db: Data<&Arc<Collection<User>>>,
+) -> Result<StatusCode, poem::error::Error> {
+    let collection = db.as_ref(); 
+    delete_user(collection, &username).await?;
+    Ok(StatusCode::OK)
 }
 
 #[derive(Deserialize)]
@@ -153,16 +145,21 @@ struct LoginInfo {
 }
 
 #[handler]
-async fn login(Json(payload): Json<LoginInfo>) -> poem::Result<impl IntoResponse> {
-    if &payload.username !="" && &payload.password !="" {
-        let mut permissions: Vec<String> = Vec::new();
-        permissions.push("user".to_string());
-        let claims = Claims::new(payload.username, permissions);
-        let jwt = create_jwt(claims)?;
+async fn login(Json(payload): Json<LoginInfo>, db: Data<&Arc<Collection<User>>>) -> poem::Result<impl IntoResponse> {
+    if payload.username.is_empty() || payload.password.is_empty() {
+        return Err(poem::Error::from_string("Either username or password is missing", StatusCode::UNAUTHORIZED));
+    }
 
-        Ok(Json(serde_json::json!({"token": jwt})))
-    } else {
-        Err(poem::Error::from_status(poem::http::StatusCode::UNAUTHORIZED))
+    match db::login(db.as_ref(), &payload.username, &payload.password).await {
+        Ok(user) => {
+            let permissions = user.role;
+            let claims = Claims::new(user.username, permissions);
+            let jwt = create_jwt(claims)
+                .map_err(|e| poem::Error::from_string(e.to_string(), StatusCode::INTERNAL_SERVER_ERROR))?;
+
+            Ok(Json(serde_json::json!({ "token": jwt })))
+        }
+        Err(err) => Err(err),
     }
 }
 
@@ -188,6 +185,7 @@ struct FileEntry {
     filename: String,
 }
 
+#[poem_grants::protect("user")]
 #[handler]
 async fn get_files(db: Data<&Arc<Collection<Document>>>) -> Result<Json<Vec<FileEntry>>, StatusCode> {
     let mut cursor = db.find(doc! {}).await.map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
@@ -219,7 +217,7 @@ async fn get_files(db: Data<&Arc<Collection<Document>>>) -> Result<Json<Vec<File
 // We then read the whole file into memory (Bytes) and turn it into a byte array (Vec<u8>)
 // Lastly we create a mongodb document with the filename and content (BSON)
 // We then insert it into the db with insert_one
-
+#[poem_grants::protect("user")]
 #[handler]
 async fn upload_file(mut multipart: Multipart, db: Data<&Arc<Collection<Document>>>) -> Result<String, StatusCode> {
     while let Ok(Some(field)) = multipart.next_field().await {
@@ -257,9 +255,9 @@ async fn upload_file(mut multipart: Multipart, db: Data<&Arc<Collection<Document
 // "if let Some(Bson::Binary(bin))" checks if theres a content field, and if the field is binary.
 // the "let response" builds an http response. The "Content-Disposition" triggers a download in the browser for the selected file.
 // body(..) Sends the file content and copies the bytes of the content field.
-
+#[poem_grants::protect("user")]
 #[handler]
-async fn download_file(Path(id): Path<String>, db: Data<&Arc<Collection<Document>>>) -> Result<impl IntoResponse, StatusCode> {
+async fn download_file(Path(id): Path<String>, db: Data<&Arc<Collection<Document>>>) -> Result<Response, StatusCode> {
     use mongodb::bson::oid::ObjectId;
 
     // Convert the string ID from the URL to a MongoDB ObjectId
@@ -294,27 +292,28 @@ async fn download_file(Path(id): Path<String>, db: Data<&Arc<Collection<Document
 // 1. Connects to the MongoDB server at `localhost:27017`.
 // 2. Selects (or creates) the database `my_api` and collection `Persons`.
 // 3. Sets up the API routes using Poem.
-
 #[tokio::main]
 async fn main() -> Result<(), std::io::Error> {
     let client = Client::with_uri_str("mongodb://localhost:27017").await.unwrap();
     let db = client.database("my_api");
 
-    let collection = Arc::new(db.collection::<Person>("persons"));
-    let files_collection = Arc::new(db.collection::<Document>("files")); // For file binary data
+    // Wrap the collection in an Arc to safely share it across multiple threads.
+    let collection = Arc::new(db.collection::<User>("users"));
+    let files_collection = Arc::new(db.collection::<Document>("files"));
 
+    let _ = initial_user_db_setup(&collection).await;
+    // Configure the Poem app with routes for handling various HTTP methods.
     let app = Route::new()
-        .at("/hello/:name", get(hello))
-        .at("/add_person", post(add_person))
+        .at("/user/add", post(add_user))
         .at(
-            "/person/:name",
-            get(get_person)
-                .put(person_update)
-                .delete(person_delete),
+            "/user/:name",
+            get(get_user)
+                .put(user_update)
+                .delete(user_delete),
         )
         .at("/login", post(login))
         .at("/upload", post(upload_file))
-        .at("/download_file/:filename", get(download_file)) 
+        .at("/download_file/:filename", get(download_file))
         .at("/files", get(get_files))
         .with(JwtMiddleware)
         .data(collection)

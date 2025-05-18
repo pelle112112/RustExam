@@ -3,9 +3,12 @@ import requests
 
 # API URL for Rust backend
 API_URL = "http://localhost:3000"
+headers = {
+    "Authorization": f"Bearer {st.session_state['token']}"
+}
 
 # Require login
-if not st.session_state.get("logged_in", False):
+if not st.session_state.get("token", False):
     st.warning("Please log in first.")
     st.stop()
 
@@ -23,14 +26,17 @@ if uploaded_file:
                      uploaded_file.getvalue(),
                      uploaded_file.type)
         }
-        response = requests.post(f"{API_URL}/upload", files=files)
+        response = requests.post(f"{API_URL}/upload", files=files, headers=headers)
         if response.status_code == 200:
             st.success("File uploaded successfully.")
         else:
             st.error(f"Upload failed: {response.status_code}")
 
-# Updated response structure from API: [{'id': '...', 'filename': '...'}, ...]
-resp = requests.get(f"{API_URL}/files")
+
+# Fetch and list files
+
+st.header("Available Files")
+resp = requests.get(f"{API_URL}/files", headers=headers)
 if resp.status_code == 200:
     file_list = resp.json()
     if not file_list:
@@ -40,7 +46,7 @@ if resp.status_code == 200:
         filename = file["filename"]
         download_url = f"{API_URL}/download_file/{file_id}"  # <- only the ID goes here
 
-        file_resp = requests.get(download_url)
+        file_resp = requests.get(download_url, headers=headers)
         if file_resp.status_code == 200:
             st.download_button(
                 label=f"Download {filename}",
