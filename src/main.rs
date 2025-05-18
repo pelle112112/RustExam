@@ -178,22 +178,33 @@ async fn login(Json(payload): Json<LoginInfo>) -> poem::Result<impl IntoResponse
 // We convert the BSON value to a string and push the filename to our array.
 // We then return the documents in JSON format.
 
+
+// This data structure stores the mongodb id and filename
+// Its annotated with #derive(serialize) to automatically convert the data into JSON string format.
+// We got a lot of errors like "the trait bound is not satisfied" without the annotation.
+#[derive(Serialize)]
+struct FileEntry {
+    id: String,
+    filename: String,
+}
+
 #[handler]
-async fn get_files(db: Data<&Arc<Collection<Document>>>, ) -> Result<Json<Vec<String>>, StatusCode> {
-    
+async fn get_files(db: Data<&Arc<Collection<Document>>>) -> Result<Json<Vec<FileEntry>>, StatusCode> {
     let mut cursor = db.find(doc! {}).await.map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
-    let mut filenames = Vec::new();
+    let mut files = Vec::new();
 
     while let Some(doc) = cursor.try_next().await.map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)? {
-        if let Some(filename_bson) = doc.get("filename") {
-            if let Some(filename) = filename_bson.as_str() {
-                filenames.push(filename.to_string());
-            }
+        if let (Some(id), Some(filename)) = (doc.get_object_id("_id").ok(), doc.get_str("filename").ok()) {
+            files.push(FileEntry {
+                id: id.to_hex(),
+                filename: filename.to_string(),
+            });
         }
     }
 
-    Ok(Json(filenames))
+    Ok(Json(files))
 }
+
 
 
 // Handles upload of files endpoint to DB
@@ -210,13 +221,11 @@ async fn get_files(db: Data<&Arc<Collection<Document>>>, ) -> Result<Json<Vec<St
 // We then insert it into the db with insert_one
 
 #[handler]
-async fn upload_file(mut multipart: Multipart, db: Data<&Arc<Collection<Document>>>, ) -> Result<String, StatusCode> {
+async fn upload_file(mut multipart: Multipart, db: Data<&Arc<Collection<Document>>>) -> Result<String, StatusCode> {
     while let Ok(Some(field)) = multipart.next_field().await {
         let filename = field.file_name().unwrap_or("file.bin").to_string();
-
-        // Correct method for Poem 3.x
         let data = field.bytes().await.map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
-        let buffer = data.to_vec(); // Convert Bytes to Vec<u8>
+        let buffer = data.to_vec();
 
         let file_doc = doc! {
             "filename": &filename,
@@ -226,19 +235,21 @@ async fn upload_file(mut multipart: Multipart, db: Data<&Arc<Collection<Document
             }),
         };
 
-        db.insert_one(file_doc)
+        let result = db.insert_one(file_doc)
             .await
             .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
-        return Ok(format!("Uploaded file '{}'", filename));
+        // Return the inserted file's ID
+        return Ok(result.inserted_id.to_string());
     }
 
     Err(StatusCode::BAD_REQUEST)
 }
 
+
 // This endpoint is made to handle the download of a selected file.
 //
-// Arguments: path filename and same as before Collection of documents
+// Arguments: path id and same as before Collection of documents
 // Returns: this handler returns a status code as response.
 //
 // We create a filter query where we search for a specific filename
@@ -248,19 +259,19 @@ async fn upload_file(mut multipart: Multipart, db: Data<&Arc<Collection<Document
 // body(..) Sends the file content and copies the bytes of the content field.
 
 #[handler]
-async fn download_file(Path(filename): Path<String>, db: Data<&Arc<Collection<Document>>>, ) -> Result<impl IntoResponse, StatusCode> {
-    // Create a query like { "filename": "myfile.pdf" }
-    let filter = doc! { "filename": &filename };
+async fn download_file(Path(id): Path<String>, db: Data<&Arc<Collection<Document>>>) -> Result<impl IntoResponse, StatusCode> {
+    use mongodb::bson::oid::ObjectId;
 
-    // Try to find the file document in the DB
-    if let Some(doc) = db
-        .find_one(filter)
-        .await
-        .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?
-    {
-        // Get the "content" field and make sure it's binary data
-        if let Some(Bson::Binary(bin)) = doc.get("content") {
-            // Return the binary data as a downloadable file
+    // Convert the string ID from the URL to a MongoDB ObjectId
+    let obj_id = ObjectId::parse_str(&id).map_err(|_| StatusCode::BAD_REQUEST)?;
+
+    let filter = doc! { "_id": obj_id };
+
+    if let Some(doc) = db.find_one(filter).await.map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)? {
+        if let (Some(Bson::Binary(bin)), Some(Bson::String(filename))) = (
+            doc.get("content"),
+            doc.get("filename"),
+        ) {
             let response = poem::Response::builder()
                 .header("Content-Disposition", format!("attachment; filename=\"{}\"", filename))
                 .body(bin.bytes.clone());
@@ -271,6 +282,8 @@ async fn download_file(Path(filename): Path<String>, db: Data<&Arc<Collection<Do
 
     Err(StatusCode::NOT_FOUND)
 }
+
+
 
 
 
