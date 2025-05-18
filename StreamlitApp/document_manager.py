@@ -3,9 +3,12 @@ import requests
 
 # API URL for Rust backend
 API_URL = "http://localhost:3000"
+headers = {
+    "Authorization": f"Bearer {st.session_state['token']}"
+}
 
 # Require login
-if not st.session_state.get("logged_in", False):
+if not st.session_state.get("token", False):
     st.warning("Please log in first.")
     st.stop()
 
@@ -35,11 +38,9 @@ if resp.status_code == 200:
     file_list = resp.json()
     if not file_list:
         st.info("No files found.")
-    for file in file_list:
-        file_id = file["id"]
-        filename = file["filename"]
-        download_url = f"{API_URL}/download_file/{file_id}"  # <- only the ID goes here
-
+    for filename in file_list:
+        # For each filename, fetch its content and render a download button
+        download_url = f"{API_URL}/download_file/{filename}"
         file_resp = requests.get(download_url)
         if file_resp.status_code == 200:
             st.download_button(
