@@ -3,6 +3,7 @@ use poem::{
     Endpoint, Middleware, Request, Result
 };
 use poem_grants::authorities::AttachAuthorities;
+use crate::auth::AuthUser;
 
 pub struct JwtMiddleware;
 
@@ -32,6 +33,10 @@ impl<E: Endpoint> Endpoint for JwtMiddlewareImpl<E> {
             let claims = crate::auth::jwt::decode_jwt(value)?;
 
             req.attach(claims.permissions.clone());
+            
+            req.extensions_mut().insert(AuthUser {
+                username: claims.username,
+            });
         }
         self.ep.call(req).await
     }

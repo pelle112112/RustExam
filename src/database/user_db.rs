@@ -1,16 +1,25 @@
-use mongodb::{bson::doc, Collection, error::Error, IndexModel, options::{IndexOptions}};
-use crate::ImageDocument;
+use mongodb::{bson::doc, Collection, IndexModel, options::{IndexOptions}};
 use poem::{http::StatusCode, Error as PoemError};
 use futures::TryStreamExt;
-use crate::User;
-// Inserts a new Person into the MongoDB collection.
-//
-// # Arguments
-// - `collection`: The MongoDB collection where the person will be inserted.
-// - `person`: The `Person` object to be inserted.
-//
-// # Returns
-// - `mongodb::error::Result<()>`: Returns an error if the insert fails, or `Ok(())` if successful.
+use serde::{Deserialize, Serialize};
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct User {
+    pub username: String,
+    pub password: String,
+    pub role: Vec<String>
+}
+
+impl User {
+    pub fn new(username: String, password: String, role: Vec<String>) -> Self {
+        Self {
+            username,
+            password,
+            role
+        }
+    }
+}
+
  pub async fn insert_user(
      collection: &Collection<User>,
      user: &User,
@@ -30,17 +39,7 @@ use crate::User;
      Ok(())
  }
 
-// Finds a person by name in the MongoDB collection.
-//
-// # Arguments
-// - `collection`: The MongoDB collection to search in.
-// - `name`: The name of the person to search for.
-//
-// # Returns
-// - `mongodb::error::Result<Option<Person>>`:
-//   - `Ok(Some(person))` if a person with the given name is found.
-//   - `Ok(None)` if no matching person is found.
-//   - `Err(error)` if an error occurs during the query.
+
 pub async fn find_user(
     collection: &Collection<User>,
     username: &str,
@@ -51,18 +50,7 @@ pub async fn find_user(
     collection.find_one(filter).await
 }
 
-// Updates a person's name in the MongoDB collection.
-//
-// # Arguments
-// - `collection`: The MongoDB collection to update.
-// - `old_name`: The current name of the person to be updated.
-// - `new_name`: The new name to update the person to.
-//
-// # Returns
-// - `mongodb::error::Result<u64>`:
-//   - Returns the number of documents matched for the update.
-//   - If no documents were matched (i.e., the old name doesn't exist), it returns `Ok(0)`.
-//   - If there’s an error during the update, it returns an error.
+
 pub async fn update_user(
     collection: &Collection<User>,
     username: &str,
@@ -83,17 +71,6 @@ pub async fn update_user(
     }
 }
 
-// Deletes a person by name from the MongoDB collection.
-//
-// # Arguments
-// - `collection`: The MongoDB collection to delete from.
-// - `name`: The name of the person to be deleted.
-//
-// # Returns
-// - `mongodb::error::Result<u64>`:
-//   - Returns the number of documents deleted.
-//   - If no document matched the name, it returns `Ok(0)`.
-//   - If there’s an error during the delete, it returns an error.
 pub async fn delete_user(
     collection: &Collection<User>,
     username: &str,
@@ -111,23 +88,6 @@ pub async fn delete_user(
         Err(_) => Err(PoemError::from_status(StatusCode::INTERNAL_SERVER_ERROR))
     }
 }
-
-pub async fn insert_image(
-    collection: &Collection<ImageDocument>,
-    image: ImageDocument,
-) -> mongodb::error::Result<()> {
-    collection.insert_one(image).await?;
-    Ok(())
-}
-
-pub async fn get_image_by_filename(
-    collection: &Collection<ImageDocument>,
-    filename: &str,
-) -> Result<Option<ImageDocument>, Error> {
-    let filter = doc! { "filename": filename };
-    collection.find_one(filter).await
-}
- 
  
  pub async fn login(collection: &Collection<User>, username: &str, password: &str) -> Result<User, PoemError>{
      // Attempt to find the user by username
