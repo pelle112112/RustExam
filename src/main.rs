@@ -1,6 +1,7 @@
 mod database;
 mod auth;
 mod api_handlers;
+mod models;
 
 use database::user_db::*;
 use database::file_db::*;
@@ -30,7 +31,7 @@ async fn main() -> Result<(), std::io::Error> {
 
     let collection = Arc::new(db.collection::<User>("users"));
     let image_collection = Arc::new(db.collection::<ImageDocument>("images"));
-    let files_collection = Arc::new(db.collection::<Document>("files"));
+    let files_collection = Arc::new(db.collection::<DocumentEntry>("files"));
 
     let _ = initial_user_db_setup(&collection).await;
     // Configure the Poem app with routes for handling various HTTP methods.
