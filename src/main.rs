@@ -13,7 +13,6 @@ use poem::{
     http::{HeaderValue,StatusCode},
     IntoResponse,
     Result,
-    Response,
     Error
 };
 
@@ -130,19 +129,6 @@ async fn user_update(
 // - `200 OK` with a success message if the deletion was successful.
 // - `404 Not Found` if no document matched the name (i.e., nothing was deleted).
 // - `500 Internal Server Error` if a DB error occurs.
-#[poem_grants::protect("admin")]
-#[handler]
-async fn person_delete(
-    Path(name): Path<String>,
-    db: poem::web::Data<&Arc<Collection<Person>>>,
-) -> Result<String, StatusCode> {
-    let collection = db.as_ref(); // Extract &Collection<Person>
-    match delete_person(collection, &name).await {
-        Ok(0) => Err(StatusCode::NOT_FOUND),
-        Ok(_) => Ok(format!("Deleted Person '{}'", name)),
-        Err(_) => Err(StatusCode::INTERNAL_SERVER_ERROR),
-    }
-}
 
 #[derive(Debug, Serialize, Deserialize)]
 struct ImageDocument {
@@ -209,7 +195,7 @@ pub async fn download_image(
     }
 }
 
-
+#[poem_grants::protect("admin")]
 #[handler]
 async fn user_delete(
     Path(username): Path<String>,
@@ -381,7 +367,7 @@ async fn main() -> Result<(), std::io::Error> {
     let client = Client::with_uri_str("mongodb://localhost:27017").await.unwrap();
     let db = client.database("my_api");
 
-    let collection = Arc::new(db.collection::<Person>("persons"));
+    let collection = Arc::new(db.collection::<User>("users"));
     let image_collection = Arc::new(db.collection::<ImageDocument>("images"));
     let files_collection = Arc::new(db.collection::<Document>("files")); // For file binary data
 

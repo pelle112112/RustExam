@@ -1,5 +1,5 @@
 use mongodb::{bson::doc, Collection, error::Error, IndexModel, options::{IndexOptions}};
-use crate::{ImageDocument, Person};
+use crate::ImageDocument;
 use poem::{http::StatusCode, Error as PoemError};
 use futures::TryStreamExt;
 use crate::User;
