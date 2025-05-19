@@ -8,9 +8,10 @@ use crate::database;
 use serde::{Deserialize};
 use crate::database::user_db::*;
 
-// Handles POST requests to /add_person. The #[handler] prefix is for poem to recognize it
-// This function receives JSON data like { "name": "Alice" } and deserializes it
-// into a Person, and inserts it into the MongoDB collection.
+// Handles POST requests to /add_user. The #[handler] prefix is for poem to recognize it
+// This function receives JSON data like this
+// { "username": "Alice", "password" : "secret", "role" : ["admin", "user"] } and deserializes it
+// into a User, and inserts it into the MongoDB collection.
 //
 // If the insert is successful, it returns HTTP 201 Created.
 // If the insert fails, it returns HTTP 500 Internal Server Error.
@@ -27,14 +28,14 @@ pub async fn add_user(
 }
 
 
-// Handles GET requests to fetch a Person by name from the database.
+// Handles GET requests to fetch a User by name from the database.
 //
 // # Arguments
 // - `Path(name)`: Extracts the `:name` segment from the request path.
 // - `db`: Shared MongoDB collection wrapped in Poem's `Data`.
 //
 // # Returns
-// - `200 OK` with the Person document as JSON if found.
+// - `200 OK` with the User document as JSON if found.
 // - `404 Not Found` if no document matches the name.
 // - `500 Internal Server Error` if a DB error occurs.
 #[poem_grants::protect("admin")]
@@ -46,7 +47,7 @@ pub async fn get_user(
     // Get a reference to the MongoDB collection.
     let collection = db.as_ref();
 
-    // Attempt to find a Person document matching the provided name.
+    // Attempt to find a User document matching the provided name.
     match find_user(collection, &name).await {
         // If found, return it as JSON with 200 OK.
         Ok(Some(doc)) => Ok(Json(doc)),
@@ -57,11 +58,11 @@ pub async fn get_user(
     }
 }
 
-// Handles PUT requests to update a Person for a specific name in the database.
+// Handles PUT requests to update a User for a specific name in the database.
 //
 // # Arguments
 // - `Path(name)`: Extracts the `:name` segment from the URL path (the name to update).
-// - `Json(payload)`: Parses the request body as JSON into a `Person`.
+// - `Json(payload)`: Parses the request body as JSON into a `User`.
 // - `db`: Shared MongoDB collection injected using Poem's `Data`.
 //
 // # Returns
@@ -80,7 +81,7 @@ pub async fn user_update(
     Ok(StatusCode::OK)
 }
 
-// Handles DELETE requests to remove a Person by name from the database.
+// Handles DELETE requests to remove a User by name from the database.
 //
 // # Arguments
 // - `Path(name)`: Extracts the `:name` segment from the URL path (the name to delete).

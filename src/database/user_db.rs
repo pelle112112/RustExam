@@ -46,7 +46,7 @@ pub async fn find_user(
 ) -> mongodb::error::Result<Option<User>> {
     // Create a filter to search for a document with the specified "name" field.
     let filter = doc! { "username": username };
-    // Perform the query to find the person by name.
+    // Perform the query to find the user by name.
     collection.find_one(filter).await
 }
 
@@ -75,7 +75,7 @@ pub async fn delete_user(
     collection: &Collection<User>,
     username: &str,
 ) -> Result<(), PoemError> {
-    // Create a filter to find the person by name.
+    // Create a filter to find the user by name.
     let filter = doc! { "username": username };
     // Execute the delete operation.
     match collection.delete_one(filter).await {
