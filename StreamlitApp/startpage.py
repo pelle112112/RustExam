@@ -5,8 +5,8 @@ import requests
 API_URL = "http://localhost:3000"
 
 # Session state for login
-if "logged_in" not in st.session_state:
-    st.session_state.logged_in = False
+if "token" not in st.session_state:
+    st.session_state.token = False
 if "username" not in st.session_state:
     st.session_state.username = ""
 
@@ -18,10 +18,11 @@ USER_CREDENTIALS = {
 }
 
 def login(username, password):
-    # Test connection with a get request
-    response = requests.get(API_URL+"/hello/world")
+    response = requests.post(API_URL+"/login", json={"username": username, "password": password})
     if response.status_code == 200:
-        print("Connection successful")
+        st.session_state.token = response.json().get("token")
+    else :
+        st.error(response.text)
     return response.status_code == 200
 
 st.title("🔐 Login")
@@ -38,4 +39,5 @@ with st.form("login_form"):
             st.success("Login successful!")
             st.info("Now navigate to 'Document Manager' from the sidebar.")
         else:
-            st.error("Invalid username or password.")
+            del st.session_state.token
+            del st.session_state.username
