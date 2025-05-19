@@ -211,8 +211,6 @@ pub async fn download_image(
 
 
 #[handler]
-fn hello(Path(name): Path<String>) -> String {
-    format!("hello: {}", name)
 async fn user_delete(
     Path(username): Path<String>,
     db: Data<&Arc<Collection<User>>>,
