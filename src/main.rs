@@ -5,14 +5,18 @@ use db::*;
 use serde_json;
 use auth::jwt::{Claims, create_jwt};
 use auth::middleware::JwtMiddleware;
-use futures_util::stream::TryStreamExt; 
+use futures_util::stream::TryStreamExt;
+
 
 use poem::{
     get, post, handler, listener::TcpListener, Route, Server,
     web::{Json, Path, Multipart, Data},
     EndpointExt,
-    http::StatusCode,
+    http::{HeaderValue,StatusCode},
     IntoResponse,
+    Result,
+    Response,
+    Error
 };
 
 use mongodb::{
@@ -140,6 +144,72 @@ async fn person_delete(
         Err(_) => Err(StatusCode::INTERNAL_SERVER_ERROR),
     }
 }
+
+#[derive(Debug, Serialize, Deserialize)]
+struct ImageDocument {
+    filename: String,
+    data: Binary,
+}
+
+#[handler]
+async fn upload_image(
+    mut multipart: Multipart,
+    db: poem::web::Data<&Arc<Collection<ImageDocument>>>,
+) -> Result<String, StatusCode> {
+    let image_collection = db.as_ref();
+    while let Some(field) = multipart.next_field().await.map_err(|_| StatusCode::BAD_REQUEST)? {
+        if field.name() == Some("file") {
+            let filename = field.file_name()
+                .map(ToString::to_string)
+                .unwrap_or_else(|| "upload".to_string());
+
+            let bytes = field.bytes().await.map_err(|_| StatusCode::BAD_REQUEST)?.to_vec();
+
+            let image_doc = ImageDocument {
+                filename: filename.clone(),
+                data: bson::Binary {
+                    subtype: bson::spec::BinarySubtype::Generic,
+                    bytes,
+                },
+            };
+
+            match insert_image(image_collection, image_doc).await {
+                Ok(_) => return Ok(format!("Uploaded {}", filename)),
+                Err(_) => return Err(StatusCode::INTERNAL_SERVER_ERROR),
+            }
+        }
+    }
+
+    Err(StatusCode::BAD_REQUEST)
+}
+
+
+#[handler]
+pub async fn download_image(
+    Path(filename): Path<String>,
+    db: Data<&Arc<Collection<ImageDocument>>>,
+) -> Result<Response, Error> {
+    match db::get_image_by_filename(&**db, &filename).await {
+        Ok(Some(image_doc)) => {
+            let content_disposition = format!("attachment; filename=\"{}\"", image_doc.filename);
+
+            let mut response = image_doc.data.bytes.into_response();
+            response.headers_mut().insert(
+                "Content-Disposition",
+                HeaderValue::from_str(&content_disposition).unwrap(),
+            );
+            response.headers_mut().insert(
+                "Content-Type",
+                HeaderValue::from_static("application/octet-stream"),
+            );
+
+            Ok(response)
+        }
+        Ok(None) => Err(Error::from_status(StatusCode::NOT_FOUND)),
+        Err(_) => Err(Error::from_status(StatusCode::INTERNAL_SERVER_ERROR)),
+    }
+}
+
 
 #[handler]
 fn hello(Path(name): Path<String>) -> String {
@@ -282,12 +352,14 @@ async fn download_file(Path(filename): Path<String>, db: Data<&Arc<Collection<Do
 // 2. Selects (or creates) the database `my_api` and collection `Persons`.
 // 3. Sets up the API routes using Poem.
 
+
 #[tokio::main]
 async fn main() -> Result<(), std::io::Error> {
     let client = Client::with_uri_str("mongodb://localhost:27017").await.unwrap();
     let db = client.database("my_api");
 
     let collection = Arc::new(db.collection::<Person>("persons"));
+    let image_collection = Arc::new(db.collection::<ImageDocument>("images"));
     let files_collection = Arc::new(db.collection::<Document>("files")); // For file binary data
 
     let app = Route::new()
@@ -303,7 +375,10 @@ async fn main() -> Result<(), std::io::Error> {
         .at("/upload", post(upload_file))
         .at("/download_file/:filename", get(download_file)) 
         .at("/files", get(get_files))
+        .at("/upload_image", post(upload_image))
+        .at("/download_image/:imagename", get(download_image) )
         .with(JwtMiddleware)
+        .data(image_collection)
         .data(collection)
         .data(files_collection);
 

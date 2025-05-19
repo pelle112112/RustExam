@@ -1,5 +1,5 @@
-use mongodb::{bson::doc, Collection};
-use crate::Person;
+use mongodb::{bson::doc, Collection, error::Error};
+use crate::{ImageDocument, Person};
 
 // Inserts a new Person into the MongoDB collection.
 //
@@ -87,4 +87,20 @@ pub async fn delete_person(
     let result = collection.delete_one(filter).await?;
     // Return the count of deleted documents.
     Ok(result.deleted_count)
+}
+
+pub async fn insert_image(
+    collection: &Collection<ImageDocument>,
+    image: ImageDocument,
+) -> mongodb::error::Result<()> {
+    collection.insert_one(image).await?;
+    Ok(())
+}
+
+pub async fn get_image_by_filename(
+    collection: &Collection<ImageDocument>,
+    filename: &str,
+) -> Result<Option<ImageDocument>, Error> {
+    let filter = doc! { "filename": filename };
+    collection.find_one(filter).await
 }

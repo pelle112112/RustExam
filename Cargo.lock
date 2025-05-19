@@ -1363,6 +1363,8 @@ dependencies = [
 name = "poem_api"
 version = "0.1.0"
 dependencies = [
+ "bson",
+ "bytes",
  "chrono",
  "futures",
  "futures-util",
