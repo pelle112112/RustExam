@@ -20,6 +20,14 @@ impl User {
     }
 }
 
+// Inserts a new User into the MongoDB collection.
+//
+// # Arguments
+// - `collection`: The MongoDB collection where the user will be inserted.
+// - `user`: The `User` object to be inserted.
+//
+// # Returns
+// - `mongodb::error::Result<()>`: Returns an error if the insert fails, or `Ok(())` if successful.
  pub async fn insert_user(
      collection: &Collection<User>,
      user: &User,
@@ -39,7 +47,17 @@ impl User {
      Ok(())
  }
 
-
+// Finds a user by name in the MongoDB collection.
+//
+// # Arguments
+// - `collection`: The MongoDB collection to search in.
+// - `username`: The name of the user to search for.
+//
+// # Returns
+// - `mongodb::error::Result<Option<User>>`:
+//   - `Ok(Some(user))` if a user with the given name is found.
+//   - `Ok(None)` if no matching user is found.
+//   - `Err(error)` if an error occurs during the query.
 pub async fn find_user(
     collection: &Collection<User>,
     username: &str,
@@ -50,7 +68,18 @@ pub async fn find_user(
     collection.find_one(filter).await
 }
 
-
+// Updates a user in the MongoDB collection.
+//
+// # Arguments
+// - `collection`: The MongoDB collection to update.
+// - `username`: The current name of the user to be updated.
+// - `new_user_details`: The new updates to the user.
+//
+// # Returns
+// - `mongodb::error::Result<u64>`:
+//   - Returns the number of documents matched for the update.
+//   - If no documents were matched (i.e., the old name doesn't exist), it returns `Ok(0)`.
+//   - If there’s an error during the update, it returns an error.
 pub async fn update_user(
     collection: &Collection<User>,
     username: &str,
@@ -71,6 +100,17 @@ pub async fn update_user(
     }
 }
 
+// Deletes a user by name from the MongoDB collection.
+//
+// # Arguments
+// - `collection`: The MongoDB collection to delete from.
+// - `username`: The name of the user to be deleted.
+//
+// # Returns
+// - `mongodb::error::Result<u64>`:
+//   - Returns the number of documents deleted.
+//   - If no document matched the name, it returns `Ok(0)`.
+//   - If there’s an error during the delete, it returns an error.
 pub async fn delete_user(
     collection: &Collection<User>,
     username: &str,
