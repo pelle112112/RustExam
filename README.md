@@ -136,3 +136,8 @@ If any of the 3 states (users collection, username index, 2 test users) is not p
 ## Final thoughts
 
 ## Future improvements
+* Automated testing
+* Previewing uploaded documents
+* Handle document uploads of the same filename
+* Add filtering / search functionality for documents
+* Usage statistics
