@@ -154,6 +154,10 @@ Poem also required less 'boiler plate code', when configuring, which was another
 
 #### Authentication flow
 
+For authentication and authorization a JWT token, holding a username, permissions and an expiration date is created and returned to the client upon login.
+The JWT token is then added to the authorization header as a bearer token to all subsequent requests, which then passes through our middleware implementation that makes sure that the permissions held in the token gives access to the requested endpoint.
+![image](/documentation/authentication.png)
+
 #### DB structure
 
 For the handling of files and users, we went with a minimalistic setup, which would help us achieve achieve a good 'error free' product.
