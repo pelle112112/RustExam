@@ -7,13 +7,14 @@ Nicolai Rosendahl - cph-nr135@cphbusiness.dk
 
 ## Project Introduction
 
-This project is an online file storage system, built with a Rust backend, Streamlit frontend and mongoDB for persistence. The application allows for users to log in, upload files and download files they own. Uploaded files are stored in a document database (mongoDB), with individual documents consisting of it's metadata, content and ownership. The backend exposes a REST API that handles authentication, file upload/download and endpoints for user management. (Last of which are not accessible on the frontend)
+This project is an online file storage system, built with a Rust backend, Streamlit frontend and mongoDB for persistence. The application allows for users to log in, upload files and download files they own. Uploaded files are stored in a document database (mongoDB), with individual documents consisting of its metadata, content and ownership. The backend exposes a REST API that handles authentication, file upload/download and endpoints for user management. The frontend however doesnt allow for user management, only login.
 
 The motivation for choosing this project was to explore the experience of working with Rust in a full-stack context, while getting first hand experience with:
 
 - How Rust handles concurrency - allowing multiple users to access the API and it's features.
 - Memory safety - keeping the application memory safe, despite the application's lifetime being indefinite.
-- Error handling - Ensuring correctness utilizing Rust's pattern matching.
+- Error handling - Ensuring correct utilization of Rust's pattern matching.
+- Performance - Using a low-level language like Rust for the backend in a fullstack application. to showcase the performance benefits.
 
 The goal was to get a better understanding of the strengths and weaknesses of Rust.
 
@@ -27,7 +28,7 @@ Upon succesful login the user is prompted to navigate to the the document manage
 
 ![image](documentation/login_success.png)
 
-On the document manager site an authorized user have the option to upload new files, and see files they've already uploaded. When uploading a file it is immediatly added to the list of available files, ready for download.
+On the document manager site an authorized user has the option to upload new files, and see files they've already uploaded. When uploading a file it is immediatly added to the list of available files, ready for download.
 
 ![image](documentation/file_upload_success.png)
 
@@ -120,7 +121,7 @@ get /download_image/:imagename
 
 #### Initial DB setup
 
-Whenever the API starts it will make sure it has access to a collection in mongoDB called users, that the username in the users collection is indexed, and that there is 2 test users available - 1 admin user and 1 regular user with the following credentials:
+Whenever the API starts it will make sure it has access to a collection in mongoDB called users, that the username in the users collection is indexed, and that there are 2 test users available - 1 admin user and 1 regular user with the following credentials:
 
 ```
 Admin user
