@@ -1,8 +1,11 @@
 # Building Systems in Rust exam project
 
 By
+
 Patrick Diekmann - cph-pd66@cphbusiness.dk
+
 Pelle Hald Vedsmand - cph-pv73@cphbusiness.dk
+
 Nicolai Rosendahl - cph-nr135@cphbusiness.dk
 
 ## Project Introduction
