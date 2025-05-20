@@ -224,9 +224,9 @@ For concurrency we handle it through the frameworks tokio and mongodb client. Mo
 
 #### What was challenging
 
-Rust as a programming language has its quirks when it comes to syntax.
 
-- We struggled a lot with writing these long handlers.
+
+- We struggled a lot with writing long handler functions, since Rust has a difficult syntax we are not used to.
 
 - We especially had problems with understanding Rust concepts like `|_|` and `some()`.
 
