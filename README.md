@@ -1,5 +1,6 @@
 # Building Systems in Rust exam project
-By 
+
+By
 Patrick Diekmann - cph-pd66@cphbusiness.dk
 Pelle Hald Vedsmand - cph-pv73@cphbusiness.dk
 Nicolai Rosendahl - cph-nr135@cphbusiness.dk
@@ -8,12 +9,13 @@ Nicolai Rosendahl - cph-nr135@cphbusiness.dk
 
 This project is an online file storage system, built with a Rust backend, Streamlit frontend and mongoDB for persistence. The application allows for users to log in, upload files and download files they own. Uploaded files are stored in a document database (mongoDB), with individual documents consisting of it's metadata, content and ownership. The backend exposes a REST API that handles authentication, file upload/download and endpoints for user management. (Last of which are not accessible on the frontend)
 
-The motivation for choosing this project was to explore the experience of working with Rust in a full-stack context, while getting first hand experience with: 
-* How Rust handles concurrency - allowing multiple users to access the API and it's features.
-* Memory safety - keeping the application memory safe, despite the application's lifetime being indefinite.
-* Error handling - Ensuring correctness utilizing Rust's pattern matching.
+The motivation for choosing this project was to explore the experience of working with Rust in a full-stack context, while getting first hand experience with:
 
-The goal was to get a better understanding of the strengths and weaknesses of Rust. 
+- How Rust handles concurrency - allowing multiple users to access the API and it's features.
+- Memory safety - keeping the application memory safe, despite the application's lifetime being indefinite.
+- Error handling - Ensuring correctness utilizing Rust's pattern matching.
+
+The goal was to get a better understanding of the strengths and weaknesses of Rust.
 
 #### Walkthrough of app flow
 
@@ -36,24 +38,28 @@ When clicking a download button, the corresponding file will be downloaded in th
 ## Requirements and Setup
 
 #### Prerequisites:
-* Rust >= 1.75
-* MongoDB instance running on localhost:27017
-* Python >= 3.9
-    * Python packages installed
-    * Streamlit ```pip install streamlit```
-    * Requests ```pip install requests```
+
+- Rust >= 1.75
+- MongoDB instance running on localhost:27017
+- Python >= 3.9
+  - Python packages installed via requirements.txt
+  - `pip install -r requirements.txt`
 
 #### Running the application:
+
 Open a terminal in the root of the project and run the following command to start the API:
-```cargo run```
+`cargo run`
 
 In a new terminal navigate to the folder named StreamlitApp and use the following command to start the frontend application:
-```streamlit run start.py```
+`cd .\StreamlitApp\`
+`python -m streamlit run start.py`
 
 The frontend should now be accessible on http://localhost:8501, and the API is exposed on http://localhost:3000.
 
 #### API endpoints:
+
 Routes without authentication:
+
 ```
 post /login
     Requires json body:
@@ -61,11 +67,13 @@ post /login
             "username": "insertUsername",
             "password": "insertPassword",
         }
-    Responds with jwt token 
+    Responds with jwt token
 ```
+
 All subsequent routes require an authorization header with a bearer token.
 
 Admin routes:
+
 ```
 post /user/add
     Requires json body:
@@ -95,6 +103,7 @@ delete /user/:name
 ```
 
 User routes:
+
 ```
 get /files
 
@@ -111,7 +120,7 @@ get /download_image/:imagename
 
 #### Initial DB setup
 
-Whenever the API starts it will make sure it has access to a collection in mongoDB called users, that the username in the users collection is indexed, and that there is 2 test users available - 1 admin user and 1 regular user with the following credentials: 
+Whenever the API starts it will make sure it has access to a collection in mongoDB called users, that the username in the users collection is indexed, and that there is 2 test users available - 1 admin user and 1 regular user with the following credentials:
 
 ```
 Admin user
@@ -156,8 +165,9 @@ If any of the 3 states (users collection, username index, 2 test users) is not p
 #### What would we do again and what we do differently
 
 ## Future improvements
-* Automated testing
-* Previewing uploaded documents
-* Handle document uploads of the same filename
-* Add filtering / search functionality for documents
-* Usage statistics
+
+- Automated testing
+- Previewing uploaded documents
+- Handle document uploads of the same filename
+- Add filtering / search functionality for documents
+- Usage statistics
