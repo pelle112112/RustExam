@@ -183,13 +183,16 @@ We have split the files into modules based on their type of functionality.
 
 #### Error handling
 
+The implemented error handling is focused around using Result, and thereby mapping the enums Ok() and Err(). We chose to go with this approach because the API framework poem has an implementation of Result that works well with how the API operates.
+
+Generally speaking we went with the approach of using the match pattern to handle the different outcomes of the poem Result, however we also tried to use map_err() to map the error cases in one liners, but we found that approach less readable than using match, where we were able to flesh out our Result handling.
+
+In the example below we created a function utilizing both approaches for handling errors.
 We used two different approaches of handling errors.
 
 ![image](documentation/errorHandling3.png)
 
 #### Concurrency handling
-
-## State of implementation
 
 ## Final thoughts
 
@@ -197,7 +200,17 @@ We used two different approaches of handling errors.
 
 #### What was challenging
 
+Rust as a programming language has its quirks when it comes to syntax.
+We struggled a lot with writing these long handlers.
+
+We especially had problems with understanding Rust concepts like `|_|` and `some()`.
+
+Understanding Rusts way of using memory and borrowing variables and pointers was a difficult concept for us to grasp.
+
 #### What would we do again and what we do differently
+
+During the project we created all of the functions inside main.rs
+We changed the project structure, which meant we had to do a lot of refactoring, which could be avoided from the start had we decided on a specific project structure.
 
 ## Future improvements
 
