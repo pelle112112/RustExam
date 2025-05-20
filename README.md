@@ -237,7 +237,7 @@ Concurrency is handled by the frameworks tokio and mongodb client. MongoDB clien
 
 - A lot of the libraries we found were deprecated, some had almost no documentation, which made it difficult for us to choose libraries.
 
-#### What would we do again and what we do differently
+#### What would we do again and what we would do differently
 
 - During the project we created all of the functions inside main.rs. We changed the project structure, which meant we had to do a lot of refactoring, which could have been avoided from the start, had we decided on a specific project structure.
 
