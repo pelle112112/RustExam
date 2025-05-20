@@ -10,11 +10,11 @@ Nicolai Rosendahl - cph-nr135@cphbusiness.dk
 
 ## Project Introduction
 
-This project is an online file storage system, built with a Rust backend, Streamlit frontend and mongoDB for persistence. The application allows for users to log in, upload files and download files they own. Uploaded files are stored in a document database (mongoDB), with individual documents consisting of its metadata, content and ownership. The backend exposes a REST API that handles authentication, file upload/download and endpoints for user management. The frontend however doesnt allow for user management, including user creation, update and delete.
+This project is an online file storage system, built with a Rust backend, Streamlit frontend and mongoDB for persistence. The application allows for users to log in, upload files and download files they own. Uploaded files are stored in a document database (mongoDB), with individual documents consisting of its metadata, content and ownership. The backend exposes a REST API that handles authentication, file upload/download and endpoints for user management. The frontend however does not allow for user management, including user creation, update and delete.
 
 The motivation for choosing this project was to explore the experience of working with Rust in a full-stack context, while getting first hand experience with:
 
-- How Rust handles concurrency - allowing multiple users to access the API and it's features.
+- How Rust handles concurrency - allowing multiple users to access the API and its features.
 - Memory safety - keeping the application memory safe, despite the application's lifetime being indefinite.
 - Error handling - Ensuring correct utilization of Rust's pattern matching.
 - Performance - Using a low-level language like Rust for the backend in a fullstack application - To showcase the performance benefits.
@@ -168,12 +168,12 @@ Using the newest version of Poem was required to satisfy other dependencies, mea
 #### Authentication flow
 
 For authentication and authorization a JWT token, holding a username, permissions and an expiration date is created and returned to the client upon login.
-The JWT token is then added to the authorization header as a bearer token to all subsequent requests, which then passes through our middleware implementation that makes sure that the permissions held in the token gives access to the requested endpoint.
+The JWT token is then added to the authorization header as a bearer token to all subsequent requests, which passes through our middleware implementation ensures that the permissions held inside the token grants access to the requested endpoint.
 ![image](/documentation/authentication.png)
 
 #### DB structure
 
-For the handling of files and users, we went with a minimalistic setup, which would help us achieve achieve a good 'error free' product.
+When handling files and users, we went with a minimalistic setup, which would help us achieve a good 'error free' product.
 Meaning the implemented data structure represents the minimal viable product.
 
 Below are the mongodb Collections of Documents we used:
@@ -192,7 +192,7 @@ Below are the mongodb Collections of Documents we used:
 - password **_String_**
 - role **_Array_** (users can have multiple roles ie. admin and user)
 
-_username_unique_index_ - to make sure that the usernames are unique and to faster search for users based on the index.
+We implemented an index on username in the users collection named _username_unique_index_ - to ensure that the usernames are unique and for faster searching of users using the index.
 
 #### Project structure
 
@@ -205,7 +205,7 @@ This was done to provide a logical overview of the project while allowing us to 
 
 The implemented error handling is focused around using Result, and thereby mapping the enums Ok() and Err(). We chose to go with this approach because the API framework poem has an implementation of Result that works well with how the API operates.
 
-Generally speaking we went with the approach of using the match pattern to handle the different outcomes of the poem Result, however we also tried to use map_err() to map the error cases in one liners, but we found that approach less readable than using match, where we were able to flesh out our Result handling.
+Generally speaking we went with the approach of using the match pattern to handle the different outcomes of the poem Result, however we also tried to use map_err() to map the error cases in one liners, but we found that approach less readable than using match, in which we were able to flesh out our Result handling.
 
 In the example below we created a function utilizing both approaches for handling errors:
 
@@ -213,7 +213,7 @@ In the example below we created a function utilizing both approaches for handlin
 
 #### Concurrency handling
 
-For concurrency we handle it through the frameworks tokio and mongodb client. MongoDB client utilizes an internal thread pool to manage connections to the database, including establishing new connections and shutting down idle connections. The connection pool is then shared across the API using tokio, which enables us to share the connection pool concurrently across multiple threads. To do this we wrap each connection pool in an Arc to enable shared ownership across all the async tasks that tokio manages.
+Concurrency is handled by the frameworks tokio and mongodb client. MongoDB client utilizes an internal thread pool to manage connections to the database, including establishing new connections and shutting down idle connections. The connection pool is then shared across the API using tokio, which enables us to share the connection pool concurrently across multiple threads. To do this we wrap each connection pool in an Arc to share ownership across all the async tasks that tokio manages.
 
 ## Final thoughts
 
@@ -221,7 +221,7 @@ For concurrency we handle it through the frameworks tokio and mongodb client. Mo
 
 - When we got the Rust backend running - we were very impressed with the overall speed.
 
-- We didnt receive any errors when using the API, since all the errors were caught during compile time.
+- We did not receive any errors when using the API, since all the errors were caught during compile time.
 
 - We were impressed with the minimal setup of Poem and Tokio, and implementing them went very well.
 
@@ -233,7 +233,7 @@ For concurrency we handle it through the frameworks tokio and mongodb client. Mo
 
 - We especially had problems with understanding Rust concepts like `|_|` and `some()`.
 
-- Understanding Rusts way of using memory and borrowing variables and pointers was a difficult concept for us to grasp.
+- Understanding Rusts way of using memory, borrowing variables and pointers was a difficult concept for us to grasp.
 
 - A lot of the libraries we found were deprecated, some had almost no documentation, which made it difficult for us to choose libraries.
 
