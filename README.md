@@ -131,9 +131,29 @@ If any of the 3 states (users collection, username index, 2 test users) is not p
 
 ## Design
 
+#### System architecture
+
+#### API framework
+
+#### Authentication flow
+
+#### DB structure
+
+#### Project structure
+
+#### Error handling
+
+#### Concurrency handling
+
 ## State of implementation
 
 ## Final thoughts
+
+#### What went well
+
+#### What was challenging
+
+#### What would we do again and what we do differently
 
 ## Future improvements
 * Automated testing
