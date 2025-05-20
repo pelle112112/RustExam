@@ -159,9 +159,8 @@ If any of the 3 states (users collection, username index, 2 test users) is not p
 
 For the API framework, we had the choice between Poem and Axum.
 From the research we conducted, we could conclude that Poem was more lightweight than Axum.
-We tried running the 1.0.0 version of Poem, but had problems with newer versions of the other packages in use, so we had to switch to 3.0.
-Since the program was designed to showcase Rust as a programming language, we went with Poem rather than the heavier Axum.
-Poem also required less 'boiler plate code', when configuring, which was another reason it was the API framework of choice for our project.
+Poem also required less 'boiler plate code', when configuring, which was another reason it was the API framework of choice for our project. Since the focus of this project is to showcase Rust as a programming language, we went with Poem rather than the heavier Axum.
+Using the newest version of Poem was required to satisfy other dependencies, meaning we ended up using version 3.0, being one of the newer versions.
 
 #### Authentication flow
 
