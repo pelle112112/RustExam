@@ -1,7 +1,6 @@
 mod database;
 mod auth;
 mod api_handlers;
-mod models;
 
 use database::user_db::*;
 use database::file_db::*;

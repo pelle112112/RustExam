@@ -6,10 +6,10 @@ use poem::{handler, Error, Response, IntoResponse, Request};
 use poem::http::{HeaderValue, StatusCode};
 use poem::web::{Data, Json, Multipart, Path};
 use serde::{Serialize};
-use crate::database::file_db::{get_image_by_filename, insert_image, ImageDocument, insert_document, get_document_by_id, DocumentEntry, get_documents_for_user};
+use crate::database::file_db::{get_image_by_filename, insert_image, ImageDocument, insert_document, get_document_by_id, DocumentEntry, get_documents_for_user, FileEntry};
 use futures_util::stream::TryStreamExt;
 use crate::api_handlers::extract_user;
-use crate::models::FileEntry;
+
 
 
 #[poem_grants::protect("user")]
