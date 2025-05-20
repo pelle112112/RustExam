@@ -108,6 +108,10 @@ put /user:name
 
 delete /user/:name
 ```
+Below is an example of using postman to post a file.
+
+![image](/documentation/multipart_file.png)
+
 
 User routes:
 
