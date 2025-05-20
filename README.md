@@ -146,13 +146,46 @@ If any of the 3 states (users collection, username index, 2 test users) is not p
 
 #### API framework
 
+For the API framework, we had the choice between Poem and Axum.
+From the research we conducted, we could conclude that Poem was more lightweight than Axum.
+We tried running the 1.0.0 version of Poem, but had problems with newer versions of the other packages in use, so we had to switch to 3.0.
+Since the program was designed to showcase Rust as a programming language, we went with Poem rather than the heavier Axum.
+Poem also required less 'boiler plate code', when configuring, which was another reason it was the API framework of choice for our project.
+
 #### Authentication flow
 
 #### DB structure
 
+For the handling of files and users, we went with a minimalistic setup, which would help us achieve achieve a good 'error free' product.
+
+Below are the mongodb Collections of Documents we used:
+
+##### **_files_**:
+
+- \_id (ObjectId) **_hex_**
+- filename **_String_**
+- content **_BSON binary_**
+- user **_String_**
+
+##### **_users_**:
+
+- \_id (ObjectId) **_hex_**
+- username **_String_**
+- password **_String_**
+- role **_Array_** (users can have multiple roles ie. admin and user)
+
+_username_unique_index_ - to make sure that the usernames are unique and to faster search for users based on the index.
+
 #### Project structure
 
+We have split the files into modules based on their type of functionality.
+![image](/documentation/projectStructure.png)
+
 #### Error handling
+
+We used two different approaches of handling errors.
+
+![image](documentation/errorHandling3.png)
 
 #### Concurrency handling
 
