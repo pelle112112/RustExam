@@ -45,7 +45,8 @@ When clicking a download button, the corresponding file will be downloaded in th
 - MongoDB instance running on localhost:27017
 - Python >= 3.9
   - Python packages installed via requirements.txt
-  - `pip install -r requirements.txt`
+
+`pip install -r requirements.txt`
 
 #### Running the application:
 
