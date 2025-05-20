@@ -7,14 +7,14 @@ Nicolai Rosendahl - cph-nr135@cphbusiness.dk
 
 ## Project Introduction
 
-This project is an online file storage system, built with a Rust backend, Streamlit frontend and mongoDB for persistence. The application allows for users to log in, upload files and download files they own. Uploaded files are stored in a document database (mongoDB), with individual documents consisting of its metadata, content and ownership. The backend exposes a REST API that handles authentication, file upload/download and endpoints for user management. The frontend however doesnt allow for user management, only login.
+This project is an online file storage system, built with a Rust backend, Streamlit frontend and mongoDB for persistence. The application allows for users to log in, upload files and download files they own. Uploaded files are stored in a document database (mongoDB), with individual documents consisting of its metadata, content and ownership. The backend exposes a REST API that handles authentication, file upload/download and endpoints for user management. The frontend however doesnt allow for user management, including user creation, update and delete.
 
 The motivation for choosing this project was to explore the experience of working with Rust in a full-stack context, while getting first hand experience with:
 
 - How Rust handles concurrency - allowing multiple users to access the API and it's features.
 - Memory safety - keeping the application memory safe, despite the application's lifetime being indefinite.
 - Error handling - Ensuring correct utilization of Rust's pattern matching.
-- Performance - Using a low-level language like Rust for the backend in a fullstack application - to showcase the performance benefits.
+- Performance - Using a low-level language like Rust for the backend in a fullstack application - To showcase the performance benefits.
 
 The goal was to get a better understanding of the strengths and weaknesses of Rust.
 
@@ -29,6 +29,7 @@ Upon succesful login the user is prompted to navigate to the the document manage
 ![image](documentation/login_success.png)
 
 On the document manager site an authorized user has the option to upload new files, and see files they've already uploaded. When uploading a file it is immediatly added to the list of available files, ready for download.
+*Uploaded files are limited to 16 mb.
 
 ![image](documentation/file_upload_success.png)
 
@@ -53,6 +54,8 @@ Open a terminal in the root of the project and run the following command to star
 
 In a new terminal navigate to the folder named StreamlitApp and use the following command to start the frontend application:
 `cd .\StreamlitApp\`
+
+
 `python -m streamlit run start.py`
 
 The frontend should now be accessible on http://localhost:8501, and the API is exposed on http://localhost:3000.
