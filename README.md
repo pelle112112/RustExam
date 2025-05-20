@@ -241,6 +241,8 @@ We changed the project structure, which meant we had to do a lot of refactoring,
 
 We also had some problems with cargo and the dependencies, which could be avoided with a better structure from the start, having a correct gitignore and using compatible versions of imports.
 
+However for projects that require a combination of performance and stability Rust and the frameworks we used seemed to handle this very well.
+
 ## Future improvements
 
 - Automated testing
