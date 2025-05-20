@@ -133,6 +133,8 @@ If any of the 3 states (users collection, username index, 2 test users) is not p
 
 #### System architecture
 
+![image](documentation/system_architecture.png)
+
 #### API framework
 
 #### Authentication flow
