@@ -14,10 +14,10 @@ This project is an online file storage system, built with a Rust backend, Stream
 
 The motivation for choosing this project was to explore the experience of working with Rust in a full-stack context, while getting first hand experience with:
 
-- How Rust handles concurrency - allowing multiple users to access the API and its features.
-- Memory safety - keeping the application memory safe, despite the application's lifetime being indefinite.
-- Error handling - Ensuring correct utilization of Rust's pattern matching.
-- Performance - Using a low-level language like Rust for the backend in a fullstack application - To showcase the performance benefits.
+- How Rust handles concurrency - Allowing multiple users to access the API and its features.
+- Memory safety - Keeping the application memory safe, despite the applications lifetime being indefinite.
+- Error handling - Ensuring correct utilization of Rusts pattern matching.
+- Performance - Using a low-level language like Rust for the backend in a full-stack application - To showcase the performance benefits.
 
 The goal was to get a better understanding of the strengths and weaknesses of Rust.
 
@@ -31,12 +31,12 @@ Upon succesful login the user is prompted to navigate to the the document manage
 
 ![image](documentation/login_success.png)
 
-On the document manager site an authorized user has the option to upload new files, and see files they've already uploaded. When uploading a file it is immediatly added to the list of available files, ready for download.
+On the document manager site an authorized user has the option to upload new files, and see files they have already uploaded. When uploading a file it is immediatly added to the list of available files, ready for download.
 *Uploaded files are limited to 16 mb.
 
 ![image](documentation/file_upload_success.png)
 
-When clicking a download button, the corresponding file will be downloaded in the same format as it was initially uploaded.
+When clicking the download button, the corresponding file will be downloaded in the same format as it was initially uploaded.
 
 ![image](documentation/download_success.png)
 
@@ -168,7 +168,7 @@ Using the newest version of Poem was required to satisfy other dependencies, mea
 #### Authentication flow
 
 For authentication and authorization a JWT token, holding a username, permissions and an expiration date is created and returned to the client upon login.
-The JWT token is then added to the authorization header as a bearer token to all subsequent requests, which passes through our middleware implementation ensures that the permissions held inside the token grants access to the requested endpoint.
+The JWT token is then added to the authorization header as a bearer token to all subsequent requests, which passes through our middleware implementation. This flow ensures the permissions held inside the token grants access to the requested endpoint.
 ![image](/documentation/authentication.png)
 
 #### DB structure
@@ -192,7 +192,7 @@ Below are the mongodb Collections of Documents we used:
 - password **_String_**
 - role **_Array_** (users can have multiple roles ie. admin and user)
 
-We implemented an index on username in the users collection named _username_unique_index_ - to ensure that the usernames are unique and for faster searching of users using the index.
+We implemented an index on username in the users collection named _username_unique_index_ - To ensure that the usernames are unique and for faster searching of users using the index.
 
 #### Project structure
 
@@ -223,7 +223,7 @@ Concurrency is handled by the frameworks tokio and mongodb client. MongoDB clien
 
 - We did not receive any errors when using the API, since all the errors were caught during compile time.
 
-- We were impressed with the minimal setup of Poem and Tokio, and implementing them went very well.
+- We were impressed with the minimal setup of Poem and Tokio, implementing them went very well.
 
 #### What was challenging
 
@@ -239,12 +239,11 @@ Concurrency is handled by the frameworks tokio and mongodb client. MongoDB clien
 
 #### What would we do again and what we do differently
 
-During the project we created all of the functions inside main.rs
-We changed the project structure, which meant we had to do a lot of refactoring, which could be avoided from the start had we decided on a specific project structure.
+- During the project we created all of the functions inside main.rs. We changed the project structure, which meant we had to do a lot of refactoring, which could have been avoided from the start, had we decided on a specific project structure.
 
-We also had some problems with cargo and the dependencies, which could be avoided with a better structure from the start, having a correct gitignore and using compatible versions of imports.
+- We also had some problems with cargo and the dependencies, which could have been avoided with a better structure from the start, having a correct gitignore and using compatible versions of imports.
 
-However for projects that require a combination of performance and stability Rust and the frameworks we used seemed to handle this very well.
+- However for projects that require a combination of performance and stability Rust and the frameworks we used seemed to handle this very well.
 
 ## Future improvements
 
