@@ -50,9 +50,11 @@ When clicking a download button, the corresponding file will be downloaded in th
 #### Running the application:
 
 Open a terminal in the root of the project and run the following command to start the API:
+
 `cargo run`
 
 In a new terminal navigate to the folder named StreamlitApp and use the following command to start the frontend application:
+
 `cd .\StreamlitApp\`
 
 
