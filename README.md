@@ -194,6 +194,7 @@ _username_unique_index_ - to make sure that the usernames are unique and to fast
 #### Project structure
 
 We have split the files into modules based on their type of functionality.
+This was done to provide a logical overview of the project while allowing us to get a better understanding of the modulization used in Rust.
 
 ![image](/documentation/projectStructure.png)
 
@@ -203,8 +204,7 @@ The implemented error handling is focused around using Result, and thereby mappi
 
 Generally speaking we went with the approach of using the match pattern to handle the different outcomes of the poem Result, however we also tried to use map_err() to map the error cases in one liners, but we found that approach less readable than using match, where we were able to flesh out our Result handling.
 
-In the example below we created a function utilizing both approaches for handling errors.
-We used two different approaches of handling errors.
+In the example below we created a function utilizing both approaches for handling errors:
 
 ![image](documentation/errorHandling3.png)
 
@@ -216,22 +216,23 @@ For concurrency we handle it through the frameworks tokio and mongodb client. Mo
 
 #### What went well
 
-When we got the Rust backend running - we were very impressed with the overall speed.
+- When we got the Rust backend running - we were very impressed with the overall speed.
 
-We didnt receive any errors when using the API, since all the errors were caught during compile time.
+- We didnt receive any errors when using the API, since all the errors were caught during compile time.
 
-We were impressed with the minimal setup of Poem and Tokio, and implementing them went very well.
+- We were impressed with the minimal setup of Poem and Tokio, and implementing them went very well.
 
 #### What was challenging
 
 Rust as a programming language has its quirks when it comes to syntax.
-We struggled a lot with writing these long handlers.
 
-We especially had problems with understanding Rust concepts like `|_|` and `some()`.
+- We struggled a lot with writing these long handlers.
 
-Understanding Rusts way of using memory and borrowing variables and pointers was a difficult concept for us to grasp.
+- We especially had problems with understanding Rust concepts like `|_|` and `some()`.
 
-A lot of the libraries we found were deprecated, some had almost no documentation, which made it difficult for us to choose libraries.
+- Understanding Rusts way of using memory and borrowing variables and pointers was a difficult concept for us to grasp.
+
+- A lot of the libraries we found were deprecated, some had almost no documentation, which made it difficult for us to choose libraries.
 
 #### What would we do again and what we do differently
 
