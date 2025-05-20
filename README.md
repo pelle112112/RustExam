@@ -160,14 +160,14 @@ For the handling of files and users, we went with a minimalistic setup, which wo
 
 Below are the mongodb Collections of Documents we used:
 
-##### **_files_**:
+##### **files**:
 
 - \_id (ObjectId) **_hex_**
 - filename **_String_**
 - content **_BSON binary_**
 - user **_String_**
 
-##### **_users_**:
+##### **users**:
 
 - \_id (ObjectId) **_hex_**
 - username **_String_**
@@ -194,9 +194,17 @@ We used two different approaches of handling errors.
 
 #### Concurrency handling
 
+For concurrency we handle it through the frameworks tokio and mongodb client. MongoDB client utilizes an internal thread pool to manage connections to the database, including establishing new connections and shutting down idle connections. The connection pool is then shared across the API using tokio, which enables us to share the connection pool concurrently across multiple threads. To do this we wrap each connection pool in an Arc to enable shared ownership across all the async tasks that tokio manages.
+
 ## Final thoughts
 
 #### What went well
+
+When we got the Rust backend running - we were very impressed with the overall speed.
+
+We didnt receive any errors when using the API, since all the errors were caught during compile time.
+
+We were impressed with the minimal setup of Poem and Tokio, and implementing them went very well.
 
 #### What was challenging
 
@@ -207,10 +215,14 @@ We especially had problems with understanding Rust concepts like `|_|` and `some
 
 Understanding Rusts way of using memory and borrowing variables and pointers was a difficult concept for us to grasp.
 
+A lot of the libraries we found were deprecated, some had almost no documentation, which made it difficult for us to choose libraries.
+
 #### What would we do again and what we do differently
 
 During the project we created all of the functions inside main.rs
 We changed the project structure, which meant we had to do a lot of refactoring, which could be avoided from the start had we decided on a specific project structure.
+
+We also had some problems with cargo and the dependencies, which could be avoided with a better structure from the start, having a correct gitignore and using compatible versions of imports.
 
 ## Future improvements
 
