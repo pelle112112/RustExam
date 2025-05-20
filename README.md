@@ -14,7 +14,7 @@ The motivation for choosing this project was to explore the experience of workin
 - How Rust handles concurrency - allowing multiple users to access the API and it's features.
 - Memory safety - keeping the application memory safe, despite the application's lifetime being indefinite.
 - Error handling - Ensuring correct utilization of Rust's pattern matching.
-- Performance - Using a low-level language like Rust for the backend in a fullstack application. to showcase the performance benefits.
+- Performance - Using a low-level language like Rust for the backend in a fullstack application - to showcase the performance benefits.
 
 The goal was to get a better understanding of the strengths and weaknesses of Rust.
 
