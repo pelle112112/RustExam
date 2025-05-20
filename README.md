@@ -171,6 +171,7 @@ The JWT token is then added to the authorization header as a bearer token to all
 #### DB structure
 
 For the handling of files and users, we went with a minimalistic setup, which would help us achieve achieve a good 'error free' product.
+Meaning the implemented data structure represents the minimal viable product.
 
 Below are the mongodb Collections of Documents we used:
 
@@ -193,6 +194,7 @@ _username_unique_index_ - to make sure that the usernames are unique and to fast
 #### Project structure
 
 We have split the files into modules based on their type of functionality.
+
 ![image](/documentation/projectStructure.png)
 
 #### Error handling
