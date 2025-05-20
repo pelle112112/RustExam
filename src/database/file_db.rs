@@ -5,8 +5,14 @@ use poem::http::StatusCode;
 use poem::web::Json;
 use serde::{Deserialize, Serialize};
 use futures_util::stream::TryStreamExt;
-use crate::models::FileEntry;
 
+
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct FileEntry {
+    pub id: String,
+    pub filename: String,
+}
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct ImageDocument {
